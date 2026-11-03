@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b14">
+<meta name="description" content="DevPath: roadmap, abordagem de clientes, pipeline e renda para dev freelancer sair do zero aos R$ 5 mil por mês.">
+<title>DevPath</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M8 1h16l8 15-8 15H8L0 16z' fill='%2338e1ff'/%3E%3Cpath d='M10 22l5-12 4 7 3-3' stroke='%23070b14' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="label">// DevPath · painel de carreira</p>
+      <h1>Rumo aos R$ 5k</h1>
+      <p class="muted" id="hello">R$ 3 mil até março, R$ 5 mil até julho. Abra aqui todo dia antes de começar.</p>
+    </div>
+    <div class="row">
+      <span class="chip xp" id="lvChip">Nível 1</span>
+      <span class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Carregando…</span></span>
+      <button class="btn ghost small" id="acct" hidden>Sair</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Seções">
+    <button role="tab" data-v="painel" aria-selected="true" id="tab-painel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Hoje</button>
+    <button role="tab" data-v="roadmap" aria-selected="false" id="tab-roadmap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l5-16 6 10 5-6"/><circle cx="20" cy="8" r="1.5"/></svg>Roadmap</button>
+    <button role="tab" data-v="abordagem" aria-selected="false" id="tab-abordagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5A8.5 8.5 0 1 1 21 11.5z"/></svg>Abordagem</button>
+    <button role="tab" data-v="semana" aria-selected="false" id="tab-semana"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Semana</button>
+    <button role="tab" data-v="pipeline" aria-selected="false" id="tab-pipeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></svg>Clientes e vagas</button>
+    <button role="tab" data-v="estudo" aria-selected="false" id="tab-estudo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h8"/></svg>Estudo</button>
+    <button role="tab" data-v="grana" aria-selected="false" id="tab-grana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Dinheiro</button>
+  </nav>
+
+  <!-- HOJE -->
+  <section class="view" id="v-painel">
+    <div class="grid kpis">
+      <div class="card kpi">
+        <span class="label">Renda do mês</span>
+        <span class="big" id="kIncome">R$ 0</span>
+        <div class="bar" title="Meta mínima e meta máxima"><i id="kIncomeBar" style="width:0"></i><span class="mark" id="kIncomeMark"></span></div>
+        <span class="sub" id="kIncomeSub">Meta: R$ 3.000 a R$ 5.000</span>
+      </div>
+      <div class="card kpi">
+        <span class="label">Nível atual</span>
+        <span class="big" id="kLevel">1</span>
+        <div class="bar xp"><i id="kLevelBar" style="width:0"></i></div>
+        <span class="sub" id="kLevelSub">0 de 5 tarefas</span>
+      </div>
+      <div class="card kpi">
+        <span class="label">Abordagens hoje</span>
+        <span class="big" id="kOut">0 de 10</span>
+        <div class="bar"><i id="kOutBar" style="width:0"></i></div>
+        <div class="row" style="justify-content:space-between"><span class="sub" id="kOutSub">Na semana: 0</span><button class="btn small" id="kOutPlus">+1</button></div>
+      </div>
+      <div class="card kpi">
+        <span class="label">Em negociação</span>
+        <span class="big" id="kPipe">R$ 0</span>
+        <span class="sub" id="kPipeSub">0 oportunidades abertas</span>
+      </div>
+    </div>
+
+    <div class="grid two" style="margin-top:16px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2>3 prioridades de hoje</h2>
+          <span class="chip" id="todayDate"></span>
+        </div>
+        <p class="note">Se fizer só isso hoje, o dia valeu. Uma de estudo, uma de dinheiro, uma de visibilidade funciona bem.</p>
+        <div class="list" id="todayList"></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="note" id="todayNext"></span>
+          <button class="btn ghost small" id="todayReset">Limpar para amanhã</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Bloco de foco</h2>
+        <p class="note">Escolha uma coisa, ligue o timer e não abra outra aba. O tempo vai direto para o seu registro de estudo.</p>
+        <input type="text" id="focusTopic" placeholder="No que você vai focar? Ex.: autenticação JWT no projeto X">
+        <div class="timer" id="timerTxt" aria-live="polite">25:00</div>
+        <div class="row">
+          <button class="btn ghost small" data-min="25" id="t25">25 min</button>
+          <button class="btn ghost small" data-min="50" id="t50">50 min</button>
+          <button class="btn ghost small" data-min="90" id="t90">90 min</button>
+          <span class="grow"></span>
+          <button class="btn" id="timerGo">Começar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid two" style="margin-top:16px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Próximos passos com clientes e vagas</h2><button class="btn ghost small" data-goto="pipeline" id="gotoPipe">Ver todos</button></div>
+        <div class="list" id="nextActions"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Tarefa do roadmap agora</h2><button class="btn ghost small" data-goto="roadmap" id="gotoRoad">Abrir roadmap</button></div>
+        <div id="nextRoad"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="view" id="v-roadmap" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2>Do código ao contracheque</h2>
+          <p class="note">Cinco níveis em ordem. Termine um antes de se espalhar pelo próximo; pular etapa é o jeito mais comum de se perder.</p>
+        </div>
+        <span class="chip xp" id="xpTotal">0 XP</span>
+      </div>
+      <div class="bar xp"><i id="roadBar" style="width:0"></i></div>
+    </div>
+    <div class="levels" id="levels" style="margin-top:16px"></div>
+  </section>
+
+  <!-- ABORDAGEM -->
+  <section class="view" id="v-abordagem" hidden>
+    <div class="grid two">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Abordagens de hoje</h2><span class="chip" id="oDate"></span></div>
+        <div class="row" style="align-items:baseline"><span class="timer" id="oCount">0</span><span class="muted" id="oGoalTxt">de 10</span></div>
+        <div class="bar"><i id="oBar" style="width:0"></i></div>
+        <div class="row">
+          <button class="btn" id="oPlus">+1 abordagem enviada</button>
+          <button class="btn ghost small" id="oMinus" aria-label="Desfazer uma">−1</button>
+          <span class="grow"></span>
+          <label class="note row" for="oGoal">Meta diária <input type="number" id="oGoal" min="1" max="100" style="width:70px"></label>
+        </div>
+        <p class="note" id="oWeek"></p>
+        <p class="note">Mensagem curta, sobre o problema deles, terminando com uma pergunta. Nunca mande "faço sites, tem interesse?". Mostre que você olhou o negócio.</p>
+      </div>
+      <div class="card">
+        <h2>Montar mensagem</h2>
+        <p class="note">Preencha e o DevPath monta o primeiro contato. Depois é só revisar e trocar o que estiver entre colchetes.</p>
+        <form class="grid" id="aiForm" style="gap:8px">
+          <div class="row"><input class="grow" type="text" id="aiNome" placeholder="Nome da empresa ou pessoa" required><input class="grow" type="text" id="aiTipo" placeholder="Tipo de negócio (ex.: barbearia)" required></div>
+          <textarea id="aiObs" rows="2" placeholder="O que você notou? Ex.: agendam tudo pelo direct, site não abre no celular" required></textarea>
+          <div class="row"><select id="aiCanal"><option>WhatsApp</option><option>Instagram direct</option><option>LinkedIn</option><option>E-mail</option></select><span class="grow"></span><button class="btn" type="submit" id="aiGo">Montar</button></div>
+        </form>
+        <textarea id="aiOut" rows="6" placeholder="A mensagem aparece aqui. Revise antes de enviar."></textarea>
+        <div class="row"><button class="btn ghost small" id="aiCopy">Copiar</button><button class="btn small" id="aiSent">Enviei: registrar e criar follow-up</button></div>
+        <p class="note" id="aiNote"></p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Roteiros prontos</h2>
+      <p class="note">Troque o que está entre colchetes. Personalizar uma frase já faz a resposta subir muito.</p>
+      <div class="grid" id="scripts" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Onde achar clientes</h2>
+      <div class="list" id="sources"></div>
+    </div>
+  </section>
+
+  <!-- SEMANA -->
+  <section class="view" id="v-semana" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><h2>Quadro da semana</h2><p class="note">Limite de 3 cartões em "Fazendo". Arraste entre colunas ou use as setas.</p></div>
+        <button class="btn ghost small" id="clearDone">Arquivar feitos</button>
+      </div>
+      <form class="row" id="weekForm">
+        <input class="grow" type="text" id="weekInput" placeholder="Nova tarefa da semana" required>
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+    </div>
+    <div class="grid kanban" style="margin-top:16px" id="kanban"></div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="view" id="v-pipeline" hidden>
+    <div class="card">
+      <h2>Clientes e vagas</h2>
+      <p class="note">Tudo que pode virar dinheiro: freelas, vagas CLT ou PJ, indicações. Cada linha precisa de uma próxima ação com data. Ao marcar como fechado, o valor entra em Dinheiro.</p>
+      <div class="stages" id="stages"></div>
+      <form class="row" id="pipeForm">
+        <input class="grow" type="text" id="pNome" placeholder="Cliente ou empresa" required>
+        <select id="pTipo"><option>Freela</option><option>Vaga CLT</option><option>Vaga PJ</option><option>Recorrente</option></select>
+        <input type="number" id="pValor" placeholder="Valor R$" min="0" step="50" style="width:120px">
+        <input class="grow" type="text" id="pAcao" placeholder="Próxima ação">
+        <input type="date" id="pData">
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Quem</th><th>Tipo</th><th class="r">Valor</th><th>Etapa</th><th>Próxima ação</th><th>Quando</th><th></th></tr></thead>
+        <tbody id="pipeBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ESTUDO -->
+  <section class="view" id="v-estudo" hidden>
+    <div class="grid two">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Últimas 12 semanas</h2><span class="chip acc" id="studyTotal">0h no total</span></div>
+        <div class="heat" id="heat" aria-label="Mapa de horas de estudo por dia"></div>
+        <div class="row note"><span>Menos</span><span class="heat" style="grid-template-rows:14px"><span></span><span data-l="1"></span><span data-l="2"></span><span data-l="3"></span><span data-l="4"></span></span><span>Mais (2h+)</span></div>
+      </div>
+      <div class="card">
+        <h2>Registrar estudo</h2>
+        <form class="row" id="studyForm">
+          <input class="grow" type="text" id="sTopic" placeholder="Tópico" required>
+          <input type="number" id="sMin" placeholder="Min" min="5" step="5" value="30" style="width:90px">
+          <input type="date" id="sDate">
+          <button class="btn" type="submit">Salvar</button>
+        </form>
+        <label class="row note" for="studyGoal">Meta semanal (horas) <input type="number" id="studyGoal" min="1" max="80" style="width:80px"></label>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Histórico</h2>
+      <div class="list" id="studyList"></div>
+    </div>
+  </section>
+
+  <!-- DINHEIRO -->
+  <section class="view" id="v-grana" hidden>
+    <div class="grid two">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Últimos 6 meses</h2>
+          <span class="row note"><label for="gMin">Meta</label><input type="number" id="gMin" style="width:90px" step="100"> a <input type="number" id="gMax" style="width:90px" step="100"></span></div>
+        <div id="chart"></div>
+      </div>
+      <div class="card">
+        <h2>Registrar entrada</h2>
+        <form class="row" id="incForm">
+          <input class="grow" type="text" id="iDesc" placeholder="De onde veio" required>
+          <input type="number" id="iVal" placeholder="R$" min="0" step="10" style="width:110px" required>
+          <input type="date" id="iDate">
+          <button class="btn" type="submit">Salvar</button>
+        </form>
+        <label class="row note" for="gFixed">Salário fixo (Urbano Norte), somado em todo mês: R$ <input type="number" id="gFixed" min="0" step="50" style="width:100px"></label>
+        <p class="note">Registre aqui só o que vem além do salário: freelas, mensalidades, projetos extras. Clientes marcados como Fechado entram sozinhos.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Entradas</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Data</th><th>Descrição</th><th class="r">Valor</th><th></th></tr></thead>
+        <tbody id="incBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<div class="auth" id="auth" hidden>
+  <div class="card auth-card">
+    <p class="label">// DevPath</p>
+    <h1 id="aTitle">Entrar</h1>
+    <p class="note">Com conta, seus dados ficam salvos na nuvem e aparecem igual no celular e no computador.</p>
+    <form id="authForm" class="grid" style="gap:10px">
+      <input type="email" id="aEmail" placeholder="E-mail" required autocomplete="email">
+      <input type="password" id="aPass" placeholder="Senha (mínimo 6 caracteres)" minlength="6" required autocomplete="current-password">
+      <button class="btn" type="submit" id="aGo">Entrar</button>
+    </form>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost small" id="aToggle" type="button">Criar conta</button>
+      <button class="btn ghost small" id="aLocal" type="button">Usar sem conta</button>
+    </div>
+    <p class="note" id="aMsg" aria-live="polite"></p>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
