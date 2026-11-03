@@ -3,16 +3,16 @@ const ROADMAP=[
  {n:1,t:"Oferta clara",when:"até 17/11",why:"\"Faço de tudo\" não vende: o dono do negócio não sabe o que pedir. Escolha 2 ofertas com nome e preço. Você continua fazendo de tudo, mas entra pela porta de uma oferta.",tasks:[
   ["f1a","Escolher 2 ofertas: (1) site ou agendamento online para negócio local, (2) automação com IA (atendimento no WhatsApp, planilhas, relatórios)"],
   ["f1b","Tabela de preços: projeto de R$ 800 a 2.000 e manutenção de R$ 200 a 500/mês"],
-  ["f1c","Escrever 1 case real do seu trabalho na Urbano Norte: problema, o que você fez, resultado"],
+  ["f1c","Escrever 1 case real do seu trabalho atual: problema, o que você fez, resultado"],
   ["f1d","Portfólio com as 2 ofertas no topo, o case e um botão de WhatsApp"],
   ["f1e","WhatsApp Business com catálogo das ofertas e mensagem de saudação"]]},
  {n:2,t:"Máquina de abordagem",when:"até 15/12",why:"Cliente é consequência de volume. 10 mensagens bem feitas por dia útil dão cerca de 200 por mês. Isso costuma render de 2 a 4 conversas sérias por semana.",tasks:[
   ["f2a","Montar uma lista de 100 empresas do seu nicho (Google Maps + Instagram) na aba Clientes e vagas"],
   ["f2b","Fazer 10 abordagens por dia útil durante 4 semanas seguidas"],
   ["f2c","Avisar 30 conhecidos que você está pegando projetos (mensagem direta + status)"],
-  ["f2d","Conversar com o gestor na Urbano Norte sobre mais horas ou projetos extras pagos"],
+  ["f2d","Conversar com o seu gestor atual sobre mais horas ou projetos extras pagos"],
   ["f2e","Fechar o 1º cliente, mesmo barato, e pedir um depoimento em vídeo ou print"]]},
- {n:3,t:"R$ 3.000 por mês",when:"até 03/03/2027",why:"Conta: R$ 1.000 fixos + 2 projetos de R$ 800 + 1 ou 2 manutenções. É possível em 4 meses se a abordagem não parar.",tasks:[
+ {n:3,t:"R$ 3.000 por mês",when:"até 03/03/2027",why:"Conta: salário fixo + 2 projetos de R$ 800 + 1 ou 2 manutenções mensais. É possível em 4 meses se a abordagem não parar.",tasks:[
   ["f3a","Fechar 2 projetos por mês"],
   ["f3b","Todo projeto entregue sai com uma proposta de manutenção mensal"],
   ["f3c","Enviar a proposta em até 24h depois da conversa, sempre no mesmo modelo"],
@@ -28,7 +28,7 @@ const ROADMAP=[
   ["f5a","Ter 6+ clientes recorrentes, ou uma vaga PJ/CLT de R$ 4k ou mais somada aos freelas"],
   ["f5b","Criar um pacote de maior valor: sistema interno sob medida com IA (R$ 3.000+)"],
   ["f5c","Reaproveitar código e templates para entregar em metade do tempo"],
-  ["f5d","Decidir com números: sair da Urbano Norte ou negociar aumento"],
+  ["f5d","Decidir com números: sair do emprego atual ou negociar aumento"],
   ["f5e","Bater um mês com renda ≥ R$ 5.000"]]}
 ];
 const SCRIPTS=[
@@ -37,19 +37,19 @@ const SCRIPTS=[
  ["Quando perguntam o preço","Nunca responda só com um número","Depende do que vocês precisam. Algo como [solução] costuma ficar entre R$ [X] e R$ [Y]. Para te passar o valor certo, me conta em 10 minutos como funciona hoje o [processo]? Pode ser por ligação ou áudio."],
  ["Para a sua rede","Status do WhatsApp e mensagem a conhecidos","Pessoal, estou pegando projetos para empresas: sites, agendamento online, automação de planilhas e atendimento com IA no WhatsApp. Se você tem um negócio, ou conhece alguém que perde tempo com tarefa repetitiva, me chama."],
  ["Pedido de indicação","Depois de uma entrega que deu certo","Oi, [nome]! Que bom que [resultado] está funcionando. Você conhece outro dono de negócio que sofre com [problema]? Se indicar e fechar, você ganha [1 mês de manutenção grátis]."],
- ["Recrutador","LinkedIn, para vagas PJ ou CLT","Oi, [nome]! Vi a vaga de [cargo] na [empresa]. Hoje trabalho na Urbano Norte resolvendo [tipo de problema] e uso IA para entregar rápido. Separei um projeto parecido com o que vocês fazem: [link]. Faz sentido conversarmos?"]
+ ["Recrutador","LinkedIn, para vagas PJ ou CLT","Oi, [nome]! Vi a vaga de [cargo] na [empresa]. Hoje trabalho resolvendo [tipo de problema] e uso IA para entregar rápido. Separei um projeto parecido com o que vocês fazem: [link]. Faz sentido conversarmos?"]
 ];
 const SOURCES=[
  ["Google Maps","Busque \"[nicho] [sua cidade]\". Priorize quem não tem site, tem site quebrado ou responde avaliações com atraso."],
  ["Instagram","Negócios locais que agendam pelo direct, mandam cardápio em foto ou dizem \"chama no WhatsApp\" sem catálogo."],
  ["Sua rede","30 conhecidos avisados valem mais que 100 desconhecidos. Família, ex-colegas, quem tem negócio."],
- ["Urbano Norte","Fornecedores e parceiros da empresa já confiam em quem trabalha lá. Pergunte também ao seu gestor que outros problemas você pode resolver."],
+ ["Seu trabalho","Fornecedores e parceiros da empresa já confiam em quem trabalha lá. Pergunte também ao seu gestor que outros problemas você pode resolver."],
  ["Plataformas","Workana e 99Freelas para pegar volume e depoimentos no começo. LinkedIn para vagas PJ júnior."],
  ["Grupos locais","Associação comercial, grupos de empresários no WhatsApp, feiras do bairro."]
 ];
 const STAGES=[["prospect","Prospectar"],["contato","Contatado"],["proposta","Proposta enviada"],["negocia","Negociando"],["fechado","Fechado"],["perdido","Perdido"]];
 const COLS=[["todo","A fazer"],["doing","Fazendo"],["done","Feito"]];
-const DEFAULT=()=>({v:2,roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:1000,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
+const DEFAULT=()=>({v:2,roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
 
 let S=DEFAULT(); let sb=null, session=null, localMode=false; let saving=false, dirty=false, saveT=null;
 const $=id=>document.getElementById(id);
