@@ -7,7 +7,7 @@
   --xp:#ffb547; --xp-soft:rgba(255,181,71,.13);
   --good:#3ef0a0; --good-soft:rgba(62,240,160,.12);
   --warn:#ffb547; --bad:#ff5c7a; --bad-soft:rgba(255,92,122,.13);
-  --heat0:#121a2c; --heat1:#123a52; --heat2:#11607d; --heat3:#1d9cc0; --heat4:#38e1ff;
+  --heat0:#1d2840; --heat1:#123a52; --heat2:#11607d; --heat3:#1d9cc0; --heat4:#38e1ff;
   --display:"Chakra Petch", "Segoe UI", system-ui, sans-serif;
   --body:"Manrope", "Segoe UI", system-ui, sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -66,7 +66,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn.small{padding:5px 11px;font-size:.84rem}
 .icon-btn{background:none;border:0;color:var(--dim);cursor:pointer;padding:4px 7px;border-radius:6px;font-size:1rem;line-height:1}
 .icon-btn:hover{color:var(--bad);background:var(--bad-soft)}
-input[type=text],input[type=number],input[type=date],select,textarea{background:var(--sunk);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;min-width:0;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{background:var(--sunk);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;min-width:0;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 ::placeholder{color:var(--dim)}
 textarea{resize:vertical;width:100%;line-height:1.5}
@@ -144,7 +144,7 @@ td select{padding:5px 8px}
 .stage:nth-child(5) b{color:var(--good)}
 /* heatmap */
 .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);gap:3px;overflow-x:auto;padding-bottom:4px}
-.heat span{width:14px;height:14px;border-radius:3px;background:var(--heat0)}
+.heat span{width:14px;height:14px;border-radius:3px;background:var(--heat0);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 .heat span[data-l="1"]{background:var(--heat1)}.heat span[data-l="2"]{background:var(--heat2)}.heat span[data-l="3"]{background:var(--heat3)}.heat span[data-l="4"]{background:var(--heat4);box-shadow:0 0 6px var(--heat4)}
 .heat span.today{outline:2px solid var(--xp);outline-offset:1px}
 /* timer */
@@ -164,3 +164,10 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
 .auth-card input{width:100%}
 body{margin:0}
 [hidden]{display:none!important}
+
+.two{align-items:start}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--fg);-webkit-box-shadow:0 0 0 40px var(--sunk) inset;caret-color:var(--fg);transition:background-color 9999s}
+.auth-card input{padding:11px 13px}
+.script-text{white-space:pre-wrap;background:var(--sunk);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;line-height:1.55;flex:1;user-select:text}
+.stage .label{white-space:nowrap}
+.kpi .warn-link{color:var(--xp);background:none;border:0;padding:0;font:inherit;text-decoration:underline;cursor:pointer}

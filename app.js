@@ -47,7 +47,7 @@ const SOURCES=[
  ["Plataformas","Workana e 99Freelas para pegar volume e depoimentos no começo. LinkedIn para vagas PJ júnior."],
  ["Grupos locais","Associação comercial, grupos de empresários no WhatsApp, feiras do bairro."]
 ];
-const STAGES=[["prospect","Prospectar"],["contato","Contatado"],["proposta","Proposta enviada"],["negocia","Negociando"],["fechado","Fechado"],["perdido","Perdido"]];
+const STAGES=[["prospect","Prospectar"],["contato","Contatado"],["proposta","Proposta"],["negocia","Negociando"],["fechado","Fechado"],["perdido","Perdido"]];
 const COLS=[["todo","A fazer"],["doing","Fazendo"],["done","Feito"]];
 const DEFAULT=()=>({v:2,roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
 
@@ -102,12 +102,12 @@ function renderAbord(){
   const ow=outWeek(),conv=S.pipeline.filter(p=>["proposta","negocia","fechado"].includes(p.status)).length;
   $("oWeek").textContent="Esta semana: "+ow+" de "+g*5+". Viraram proposta ou mais, no total: "+conv+".";
   if(!$("scripts").dataset.built){
-    $("scripts").innerHTML=SCRIPTS.map((s,i)=>`<div class="card" style="background:var(--sunk);border:0"><div><h3>${esc(s[0])}</h3><span class="note">${esc(s[1])}</span></div><textarea id="sc${i}" rows="6" readonly>${esc(s[2])}</textarea><div><button class="btn ghost small" data-copy="sc${i}">Copiar</button></div></div>`).join("");
+    $("scripts").innerHTML=SCRIPTS.map((s,i)=>`<div class="card" style="background:var(--sunk);border:0"><div><h3>${esc(s[0])}</h3><span class="note">${esc(s[1])}</span></div><div class="script-text" id="sc${i}">${esc(s[2])}</div><div><button class="btn ghost small" data-copy="sc${i}">Copiar</button></div></div>`).join("");
     $("sources").innerHTML=SOURCES.map(s=>`<div class="item"><span class="chip acc" style="min-width:110px;justify-content:center">${esc(s[0])}</span><span class="txt">${esc(s[1])}</span></div>`).join("");
     $("scripts").querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyFrom($(b.dataset.copy)));
     $("scripts").dataset.built=1}
 }
-function copyFrom(el){const v=el.value;const ok=()=>toast("Copiado");try{navigator.clipboard.writeText(v).then(ok,()=>{el.focus();el.select();toast("Selecionado: use Ctrl+C")})}catch(e){el.focus();el.select();toast("Selecionado: use Ctrl+C")}}
+function copyFrom(el){const v=el.value!==undefined?el.value:el.textContent;if(el.value===undefined){el.select=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)};el.focus=()=>{}}const ok=()=>toast("Copiado");try{navigator.clipboard.writeText(v).then(ok,()=>{el.focus();el.select();toast("Selecionado: use Ctrl+C")})}catch(e){el.focus();el.select();toast("Selecionado: use Ctrl+C")}}
 function bumpOut(d){const t=today();S.outreach[t]=Math.max(0,(S.outreach[t]||0)+d);if(!S.outreach[t])delete S.outreach[t];changed()}
 function renderKpis(){
   const k=monthKey(today()),inc=incomeMonth(k),g=S.goal;
@@ -116,7 +116,11 @@ function renderKpis(){
   $("kIncomeBar").style.background=inc>=g.min?"var(--good)":"var(--accent)";
   $("kIncomeMark").style.left=Math.min(100,g.min/g.max*100)+"%";
   const dl=inc>=g.min?g.d5:g.d3,dd=daysTo(dl);
+  if(!(+g.fixed)&&!S.income.length){$("kIncomeSub").innerHTML='Preencha seu salário fixo em <button class="warn-link" id="goMoney">Dinheiro</button> para a conta ficar certa.';$("goMoney").onclick=()=>show("grana");return renderKpisRest(g)}
   $("kIncomeSub").textContent=inc>=g.max?"Meta de "+brl(g.max)+" batida. Hora de subir a meta.":(inc>=g.min?"Faltam "+brl(g.max-inc)+" para "+brl(g.max):"Faltam "+brl(g.min-inc)+" para "+brl(g.min))+" · prazo "+fmtD(dl)+" ("+(dd>=0?dd+" dias":"vencido")+")";
+  renderKpisRest(g);
+}
+function renderKpisRest(g){
   const li=levelInfo(),L=li.current;
   if(L){const d=L.tasks.filter(t=>S.roadmap[t[0]]).length;$("kLevel").textContent=L.n+" · "+L.t;$("kLevel").style.fontSize="1.25rem";$("kLevelBar").style.width=d/L.tasks.length*100+"%";$("kLevelSub").textContent=d+" de "+L.tasks.length+" tarefas deste nível";$("lvChip").textContent="Nível "+L.n+" · "+li.done*100+" XP"}
   else{$("kLevel").textContent="Completo";$("kLevelBar").style.width="100%";$("kLevelSub").textContent="Todos os níveis concluídos";$("lvChip").textContent="Nível máximo · "+li.done*100+" XP"}
