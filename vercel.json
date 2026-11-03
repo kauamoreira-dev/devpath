@@ -1,0 +1,6 @@
+{
+  "rewrites": [{ "source": "/s/:slug", "destination": "/servicos.html" }],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

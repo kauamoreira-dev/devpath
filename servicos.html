@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b14">
+<title>Serviços</title>
+<meta name="description" content="Sites, agendamento online e automações para o seu negócio.">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/style.css">
+<style>
+.page{max-width:960px;margin:0 auto;padding-block:48px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
+.hero{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.hero h1{font-size:clamp(2.2rem,6vw,3.6rem)}
+.hero .lead-txt{font-size:clamp(1.05rem,2.4vw,1.3rem);color:var(--muted);max-width:40ch}
+.btn.big{padding:13px 22px;font-size:1.02rem}
+.svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.svc .card{gap:10px}
+.svc ul{margin:0;padding-left:18px;color:var(--fg)}
+.svc li{margin:3px 0}
+.price{font-family:var(--display);font-size:1.7rem;font-weight:700}
+.price small{font-family:var(--body);font-size:.85rem;color:var(--muted);font-weight:500}
+.case{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.case{grid-template-columns:minmax(0,1fr)}}
+.case .card p{color:var(--fg)}
+.foot{color:var(--dim);font-size:.82rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.foot a{color:var(--muted)}
+.state{padding:80px 0;text-align:center;color:var(--muted)}
+.links{display:flex;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main class="page" id="page">
+  <p class="state" id="state">Carregando…</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
+<script src="/servicos.js"></script>
+</body>
+</html>

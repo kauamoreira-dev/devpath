@@ -11,6 +11,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 <div class="wrap">
@@ -23,6 +27,7 @@
     <div class="row">
       <span class="chip xp" id="lvChip">Nível 1</span>
       <span class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Carregando…</span></span>
+      <button class="btn ghost small" id="installBtn" hidden>Instalar app</button>
       <button class="btn ghost small" id="acct" hidden>Sair</button>
     </div>
   </header>
@@ -33,6 +38,7 @@
     <button role="tab" data-v="abordagem" aria-selected="false" id="tab-abordagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5A8.5 8.5 0 1 1 21 11.5z"/></svg>Abordagem</button>
     <button role="tab" data-v="semana" aria-selected="false" id="tab-semana"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Semana</button>
     <button role="tab" data-v="pipeline" aria-selected="false" id="tab-pipeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></svg>Clientes e vagas</button>
+    <button role="tab" data-v="propostas" aria-selected="false" id="tab-propostas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>Propostas</button>
     <button role="tab" data-v="estudo" aria-selected="false" id="tab-estudo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h8"/></svg>Estudo</button>
     <button role="tab" data-v="grana" aria-selected="false" id="tab-grana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Dinheiro</button>
   </nav>
@@ -67,6 +73,19 @@
 
     <div class="grid two" style="margin-top:16px">
       <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Fila de abordagem</h2><span class="chip acc" id="qCount"></span></div>
+        <p class="note">Os próximos da sua lista. Toque em WhatsApp: a mensagem já vai escrita e a abordagem é contada sozinha.</p>
+        <div class="list" id="queue"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Follow-ups</h2><span class="chip" id="fuCount"></span></div>
+        <p class="note">Quem precisa de retorno hoje. A maioria dos fechamentos vem no 2º ou 3º contato.</p>
+        <div class="list" id="fups"></div>
+      </div>
+    </div>
+
+    <div class="grid two" style="margin-top:16px">
+      <div class="card">
         <div class="row" style="justify-content:space-between">
           <h2>3 prioridades de hoje</h2>
           <span class="chip" id="todayDate"></span>
@@ -93,15 +112,9 @@
       </div>
     </div>
 
-    <div class="grid two" style="margin-top:16px">
-      <div class="card">
-        <div class="row" style="justify-content:space-between"><h2>Próximos passos com clientes e vagas</h2><button class="btn ghost small" data-goto="pipeline" id="gotoPipe">Ver todos</button></div>
-        <div class="list" id="nextActions"></div>
-      </div>
-      <div class="card">
-        <div class="row" style="justify-content:space-between"><h2>Tarefa do roadmap agora</h2><button class="btn ghost small" data-goto="roadmap" id="gotoRoad">Abrir roadmap</button></div>
-        <div id="nextRoad"></div>
-      </div>
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h2>Tarefa do roadmap agora</h2><button class="btn ghost small" data-goto="roadmap" id="gotoRoad">Abrir roadmap</button></div>
+      <div id="nextRoad"></div>
     </div>
   </section>
 
@@ -181,20 +194,86 @@
       <h2>Clientes e vagas</h2>
       <p class="note">Tudo que pode virar dinheiro: freelas, vagas CLT ou PJ, indicações. Cada linha precisa de uma próxima ação com data. Ao marcar como fechado, o valor entra em Dinheiro.</p>
       <div class="stages" id="stages"></div>
-      <form class="row" id="pipeForm">
-        <input class="grow" type="text" id="pNome" placeholder="Cliente ou empresa" required>
-        <select id="pTipo"><option>Freela</option><option>Vaga CLT</option><option>Vaga PJ</option><option>Recorrente</option></select>
-        <input type="number" id="pValor" placeholder="Valor R$" min="0" step="50" style="width:120px">
-        <input class="grow" type="text" id="pAcao" placeholder="Próxima ação">
-        <input type="date" id="pData">
+      <form class="pform" id="pipeForm">
+        <input type="text" id="pNome" placeholder="Cliente ou empresa" required>
+        <input type="text" id="pNicho" placeholder="Nicho (ex.: barbearia)">
+        <input type="text" id="pWhats" placeholder="WhatsApp com DDD" inputmode="tel">
+        <input type="text" id="pInsta" placeholder="@instagram">
+        <input type="text" id="pObs" class="span2" placeholder="O que você notou no negócio (vira a mensagem)">
+        <select id="pTipo" aria-label="Tipo"><option>Freela</option><option>Vaga CLT</option><option>Vaga PJ</option><option>Recorrente</option></select>
+        <input type="number" id="pValor" placeholder="Valor R$" min="0" step="50">
+        <input type="text" id="pAcao" class="span2" placeholder="Próxima ação (padrão: primeiro contato)">
+        <input type="date" id="pData" aria-label="Data da próxima ação">
         <button class="btn" type="submit">Adicionar</button>
       </form>
+      <details class="bulk">
+        <summary>Colar vários de uma vez</summary>
+        <p class="note">Uma empresa por linha, separando com ponto e vírgula: <span class="mono">Nome; nicho; WhatsApp; Instagram; o que notou</span>. Só o nome é obrigatório.</p>
+        <textarea id="bulkTxt" rows="5" placeholder="Barbearia do Zé; barbearia; 93 99999-0000; @barbeariadoze; agenda tudo pelo direct&#10;Clínica Sorriso; clínica; 93 98888-0000; ; site não abre no celular"></textarea>
+        <div><button class="btn small" type="button" id="bulkGo">Importar para a fila</button></div>
+      </details>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h2>Funil</h2><span class="note" id="funnelSub"></span></div>
+      <div class="funnel" id="funnel"></div>
+      <p class="note" id="funnelTip"></p>
+      <div class="grid two" style="gap:16px">
+        <div class="tbl-wrap"><table><thead><tr><th>Nicho</th><th class="r">Abordados</th><th class="r">Responderam</th><th class="r">Propostas</th><th class="r">Fechados</th></tr></thead><tbody id="byNicho"></tbody></table></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Tipo de mensagem</th><th class="r">Abordados</th><th class="r">Responderam</th></tr></thead><tbody id="byKind"></tbody></table></div>
+      </div>
     </div>
     <div class="card" style="margin-top:16px">
       <div class="tbl-wrap"><table>
         <thead><tr><th>Quem</th><th>Tipo</th><th class="r">Valor</th><th>Etapa</th><th>Próxima ação</th><th>Quando</th><th></th></tr></thead>
         <tbody id="pipeBody"></tbody>
       </table></div>
+    </div>
+  </section>
+
+  <!-- PROPOSTAS -->
+  <section class="view" id="v-propostas" hidden>
+    <div class="grid two">
+      <div class="card">
+        <h2>Gerar proposta</h2>
+        <p class="note">Mande em até 24h depois da conversa. Proposta rápida passa confiança.</p>
+        <div class="pform" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <input type="text" id="prCli" list="cliList" class="span2" placeholder="Cliente (escolha da lista ou digite)">
+          <datalist id="cliList"></datalist>
+          <select id="prOff" class="span2" aria-label="Oferta"></select>
+          <label class="note fl" for="prVal">Valor (R$)<input type="number" id="prVal" min="0" step="50"></label>
+          <label class="note fl" for="prDias">Válida por (dias)<input type="number" id="prDias" min="1" value="7"></label>
+          <select id="prPag" class="span2" aria-label="Forma de pagamento"><option>50% na aprovação e 50% na entrega</option><option>À vista no Pix, na aprovação</option><option>Em até 3x no cartão</option></select>
+          <textarea id="prExtra" class="span2" rows="2" placeholder="Observações (opcional): o que ficou combinado na conversa"></textarea>
+        </div>
+        <div class="row"><button class="btn" id="prPrint">Baixar PDF</button><button class="btn ghost" id="prSent">Marcar como enviada</button></div>
+        <p class="note">No "Baixar PDF", escolha <b>Salvar como PDF</b> na janela de impressão.</p>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Suas ofertas</h2><button class="btn ghost small" id="offAdd">+ Nova oferta</button></div>
+        <p class="note">Os valores vêm preenchidos como exemplo. Ajuste para os seus: eles alimentam as propostas e a sua página pública.</p>
+        <div id="offers" class="offers"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Pré-visualização</h2>
+      <div class="propdoc-wrap"><div id="propDoc" class="propdoc"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h2>Seu perfil e página pública</h2><a class="chip acc" id="pfLink" href="#" target="_blank" rel="noopener" hidden></a></div>
+      <p class="note">Seu nome e cidade entram nas mensagens e propostas. A página pública mostra suas ofertas com botão de WhatsApp: mande o link para quem responder "me mostra o que você faz" e coloque na bio do Instagram.</p>
+      <div class="pform">
+        <input type="text" id="pfNome" placeholder="Seu nome">
+        <input type="text" id="pfCidade" placeholder="Cidade">
+        <input type="text" id="pfWhats" placeholder="Seu WhatsApp com DDD" inputmode="tel">
+        <input type="text" id="pfInsta" placeholder="Seu @instagram">
+        <input type="text" id="pfHeadline" class="span2" placeholder="Frase de apresentação. Ex.: Sites e automações que fazem seu negócio ganhar tempo">
+        <label class="note fl span2" for="pfSlug">Endereço da página: …/s/<input type="text" id="pfSlug" placeholder="seu-nome" autocapitalize="off"></label>
+        <textarea id="pfProb" class="span2" rows="2" placeholder="Case · problema: o que a empresa sofria"></textarea>
+        <textarea id="pfSol" class="span2" rows="2" placeholder="Case · solução: o que você fez"></textarea>
+        <textarea id="pfRes" class="span2" rows="2" placeholder="Case · resultado: o que mudou (tempo, dinheiro, clientes)"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="pfPublish">Publicar página</button><button class="btn ghost small" id="pfCopy" hidden>Copiar link</button><span class="note" id="pfMsg"></span></div>
+      <p class="note">Ao publicar, seu nome, WhatsApp, Instagram, ofertas e case ficam visíveis para qualquer pessoa com o link.</p>
     </div>
   </section>
 
@@ -253,6 +332,7 @@
   </section>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div id="printArea"></div>
 
 <div class="auth" id="auth" hidden>
   <div class="card auth-card">

@@ -49,7 +49,11 @@ const SOURCES=[
 ];
 const STAGES=[["prospect","Prospectar"],["contato","Contatado"],["proposta","Proposta"],["negocia","Negociando"],["fechado","Fechado"],["perdido","Perdido"]];
 const COLS=[["todo","A fazer"],["doing","Fazendo"],["done","Feito"]];
-const DEFAULT=()=>({v:2,roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
+const OFFERS0=()=>[
+ {id:"o1",nome:"Site com agendamento online",desc:"Site rápido e bonito para o seu negócio, com agendamento online ligado ao WhatsApp, para o cliente marcar sozinho a qualquer hora.",inclui:"Site de até 5 seções, feito para celular\nAgendamento online com confirmação no WhatsApp\nDomínio e hospedagem configurados\nTreinamento de 30 minutos",prazo:15,preco:1200,mensal:200},
+ {id:"o2",nome:"Automação com IA",desc:"Automatizo uma tarefa repetitiva do seu negócio usando IA: atendimento no WhatsApp, planilhas ou relatórios.",inclui:"Diagnóstico de como funciona hoje\nAutomação configurada e testada\nManual simples de uso\n30 dias de ajustes",prazo:10,preco:1500,mensal:300}];
+const PROFILE0=()=>({nome:"",cidade:"",whats:"",insta:"",headline:"",slug:"",caseProb:"",caseSol:"",caseRes:"",published:false});
+const DEFAULT=()=>({v:3,profile:PROFILE0(),offers:OFFERS0(),proposals:[],roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
 
 let S=DEFAULT(); let sb=null, session=null, localMode=false; let saving=false, dirty=false, saveT=null;
 const $=id=>document.getElementById(id);
@@ -64,7 +68,7 @@ function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTime
 function sync(state,txt){$("syncDot").className="dot "+state;$("syncTxt").textContent=txt}
 
 /* ---------- persistence ---------- */
-function merge(d){const b=DEFAULT();for(const k in b){if(d&&d[k]!==undefined)b[k]=d[k]}b.goal=Object.assign(DEFAULT().goal,b.goal||{});return b}
+function merge(d){const b=DEFAULT();for(const k in b){if(d&&d[k]!==undefined)b[k]=d[k]}b.goal=Object.assign(DEFAULT().goal,b.goal||{});b.profile=Object.assign(PROFILE0(),b.profile||{});if(!Array.isArray(b.offers))b.offers=OFFERS0();return b}
 function save(){dirty=true;clearTimeout(saveT);saveT=setTimeout(flush,700)}
 async function flush(){
   try{localStorage.setItem("devpath",JSON.stringify(S))}catch(e){}
@@ -92,7 +96,7 @@ function studyByDay(){const m={};for(const s of S.study){m[s.date]=(m[s.date]||0
 function streak(){const m=studyByDay();let n=0;const d=new Date();if(!m[iso(d)])d.setDate(d.getDate()-1);while(m[iso(d)]){n++;d.setDate(d.getDate()-1)}return n}
 
 /* ---------- render ---------- */
-function render(){renderKpis();renderToday();renderNext();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
+function render(){renderKpis();renderToday();renderNext();renderQueue();renderFups();renderFunnel();renderProps();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
 function renderAbord(){
   const t=today(),n=S.outreach[t]||0,g=S.goal.outreachDay;
   $("oDate").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
@@ -146,8 +150,6 @@ function renderToday(){
   $("todayNext").textContent=S.today.date&&S.today.date!==t?"Estas prioridades são de "+fmtD(S.today.date)+".":n===3?"Dia ganho. Descanse sem culpa.":n+" de 3 feitas";
 }
 function renderNext(){
-  const t=today();const open=S.pipeline.filter(p=>!["fechado","perdido"].includes(p.status)).sort((a,b)=>(a.data||"9")>(b.data||"9")?1:-1).slice(0,5);
-  $("nextActions").innerHTML=open.length?open.map(p=>`<div class="item"><div class="txt"><b>${esc(p.nome)}</b> <span class="muted">· ${esc(p.acao||"definir próxima ação")}</span></div><span class="chip ${p.data&&p.data<t?"bad":p.data===t?"xp":""}">${p.data?(p.data<t?"Atrasado "+fmtD(p.data):p.data===t?"Hoje":fmtD(p.data)):"Sem data"}</span></div>`).join(""):`<p class="empty">Nenhuma oportunidade aberta. Na aba Clientes e vagas, adicione 3 pessoas ou empresas para abordar esta semana.</p>`;
   const L=levelInfo().current;
   if(!L){$("nextRoad").innerHTML=`<p class="empty">Roadmap completo. Revise suas metas na aba Dinheiro.</p>`;return}
   const nt=L.tasks.find(x=>!S.roadmap[x[0]]);
@@ -179,13 +181,13 @@ function renderPipe(){
   $("stages").innerHTML=STAGES.map(([k,n])=>{const it=S.pipeline.filter(p=>p.status===k);return `<div class="stage"><span class="label">${n}</span><b class="num">${it.length}</b><span class="note num">${brl(it.reduce((a,p)=>a+(+p.valor||0),0))}</span></div>`}).join("");
   const order=Object.fromEntries(STAGES.map((s,i)=>[s[0],i]));
   const rows=[...S.pipeline].sort((a,b)=>order[a.status]-order[b.status]||((a.data||"9")>(b.data||"9")?1:-1));
-  $("pipeBody").innerHTML=rows.length?rows.map(p=>`<tr><td><b>${esc(p.nome)}</b></td><td>${esc(p.tipo)}</td><td class="r num">${p.valor?brl(p.valor):"—"}</td>
+  $("pipeBody").innerHTML=rows.length?rows.map(p=>`<tr><td><b>${esc(p.nome)}</b>${p.nicho?` <span class="muted">· ${esc(p.nicho)}</span>`:""}<div class="mini-links">${p.whats?`<a href="https://wa.me/${PH(p.whats)}" target="_blank" rel="noopener">WhatsApp</a>`:""}${p.insta?`<a href="${esc(igUrl(p.insta))}" target="_blank" rel="noopener">Instagram</a>`:""}</div></td><td>${esc(p.tipo)}</td><td class="r num">${p.valor?brl(p.valor):"—"}</td>
    <td><select data-st="${p.id}" aria-label="Etapa">${STAGES.map(([k,n])=>`<option value="${k}" ${p.status===k?"selected":""}>${n}</option>`).join("")}</select></td>
    <td><input type="text" data-ac="${p.id}" value="${esc(p.acao)}" aria-label="Próxima ação" style="width:100%;min-width:160px"></td>
    <td><input type="date" data-dt="${p.id}" value="${esc(p.data)}" aria-label="Data" class="${p.data&&p.data<t&&!["fechado","perdido"].includes(p.status)?"late":""}"></td>
    <td><button class="icon-btn" data-pdel="${p.id}" aria-label="Remover">×</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">Ainda vazio. Comece com 3 nomes: um comércio do seu bairro, um conhecido que tem negócio e uma vaga júnior que te interessa.</td></tr>`;
   const B=$("pipeBody");
-  B.querySelectorAll("[data-st]").forEach(s=>s.onchange=()=>{const p=S.pipeline.find(x=>x.id===s.dataset.st);p.status=s.value;
+  B.querySelectorAll("[data-st]").forEach(s=>s.onchange=()=>{const p=S.pipeline.find(x=>x.id===s.dataset.st);p.status=s.value;if(s.value==="proposta")p.proposed=true;if(["negocia","proposta","fechado"].includes(s.value)&&!p.replied)p.replied=today();
     if(s.value==="fechado"&&p.valor&&!S.income.some(i=>i.pid===p.id)){S.income.push({id:uid(),pid:p.id,date:today(),desc:p.nome+" ("+p.tipo+")",valor:+p.valor});toast("Fechado! "+brl(p.valor)+" entrou em Dinheiro")}
     changed()});
   B.querySelectorAll("[data-ac]").forEach(i=>i.onchange=()=>{S.pipeline.find(x=>x.id===i.dataset.ac).acao=i.value;changed()});
@@ -218,6 +220,149 @@ function renderMoney(){
   $("incBody").querySelectorAll("[data-idel]").forEach(b=>b.onclick=()=>{S.income=S.income.filter(x=>x.id!==b.dataset.idel);changed()});
 }
 
+/* ---------- leads, follow-ups, funil ---------- */
+function PH(s){let d=String(s||"").replace(/\D/g,"").replace(/^0+/,"");if(!d)return"";if(!(d.startsWith("55")&&d.length>=12))d="55"+d;return d}
+function igUrl(s){s=String(s||"").trim();if(!s)return"";if(/^https?:/i.test(s))return s;return"https://instagram.com/"+s.replace(/^@/,"")}
+function addDays(n){const d=new Date();d.setDate(d.getDate()+n);return iso(d)}
+function me(){return{nome:S.profile.nome.trim()||"[seu nome]",cidade:S.profile.cidade.trim()||"[cidade]"}}
+function lcFirst(s){s=String(s||"").trim().replace(/[.!]+$/,"");return s.charAt(0).toLowerCase()+s.slice(1)}
+function newLead(o){return{id:uid(),nome:String(o.nome||"").trim(),nicho:String(o.nicho||"").trim(),whats:String(o.whats||"").trim(),insta:String(o.insta||"").trim(),obs:String(o.obs||"").trim(),tipo:o.tipo||"Freela",valor:o.valor||0,status:"prospect",acao:o.acao||"Primeiro contato",data:o.data||today(),touches:[]}}
+function firstMsg(p){const m=me();
+  if(p.obs)return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Vi que ${lcFirst(p.obs)}. Eu resolvo esse tipo de coisa para negócios como ${p.nicho?"o seu ("+p.nicho+")":"o seu"}, e isso costuma poupar um bom tempo na semana. Posso te mandar um exemplo rápido de como ficaria para vocês?`;
+  return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Ajudo negócios como o seu a ganhar tempo com site, agendamento online e automação no WhatsApp. Posso te fazer uma pergunta rápida sobre como vocês atendem hoje?`}
+function fuMsg(p){const n=(p.touches||[]).filter(t=>t.k==="fu").length;
+  if(p.status==="proposta")return`Oi, ${p.nome}! Conseguiu dar uma olhada na proposta que te mandei? Se tiver qualquer dúvida ou quiser ajustar algo, me fala que eu adapto.`;
+  if(p.status==="negocia")return`Oi, ${p.nome}! Conseguimos marcar aquela conversa rápida? Pode ser por ligação ou áudio, no horário que for melhor para você.`;
+  if(n===0)return`Oi, ${p.nome}! Passando só para saber se você viu minha mensagem${p.obs?" sobre "+lcFirst(p.obs):""}. Se não for prioridade agora, tudo bem, é só me falar que eu não insisto.`;
+  return`Oi, ${p.nome}! Última mensagem por aqui: se quiser, te mando um exemplo pronto de como ficaria para vocês, sem compromisso. Se não fizer sentido agora, sem problema!`}
+function waLink(p,msg){return p.whats?`https://wa.me/${PH(p.whats)}?text=${encodeURIComponent(msg)}`:""}
+function touch(p,k){p.touches=p.touches||[];p.touches.push({d:today(),k});
+  if(k==="first"){if(p.status==="prospect")p.status="contato";p.msgKind=p.obs?"personalizada":"genérica";p.acao="Follow-up";p.data=addDays(3);S.outreach[today()]=(S.outreach[today()]||0)+1;
+    const n=S.outreach[today()];if(n===S.goal.outreachDay)setTimeout(()=>toast("Meta do dia batida!"),400)}
+  else{const n=p.touches.filter(t=>t.k==="fu").length;p.data=addDays(n>=2?7:4);if(p.status==="contato")p.acao=n>=2?"Sem resposta: decidir se encerra":"Follow-up "+(n+1)}
+  changed()}
+function copyText(t,msg){try{navigator.clipboard.writeText(t).then(()=>toast(msg||"Mensagem copiada"),()=>toast("Não deu para copiar automaticamente"))}catch(e){toast("Não deu para copiar automaticamente")}}
+const byId=id=>S.pipeline.find(x=>x.id===id);
+function renderQueue(){
+  const t=today(),done=S.outreach[t]||0,left=Math.max(0,S.goal.outreachDay-done);
+  const all=S.pipeline.filter(p=>p.status==="prospect"),list=all.slice(0,Math.min(10,Math.max(3,left)));
+  $("qCount").textContent=left?left+" para bater a meta":"meta batida";
+  if(!all.length){$("queue").innerHTML=`<div class="empty">Sua lista está vazia. Em <button class="warn-link" data-goto2="pipeline">Clientes e vagas</button>, adicione empresas (dá para colar várias de uma vez) e elas aparecem aqui.</div>`}
+  else $("queue").innerHTML=list.map(p=>`<div class="lead"><div class="lead-h"><b>${esc(p.nome)}</b>${p.nicho?`<span class="chip">${esc(p.nicho)}</span>`:""}${p.obs?"":`<span class="chip bad" title="Sem observação a mensagem fica genérica">genérica</span>`}</div>${p.obs?`<p class="note">${esc(p.obs)}</p>`:""}
+    <div class="acts">${p.whats?`<a class="btn wa small" href="${esc(waLink(p,firstMsg(p)))}" target="_blank" rel="noopener" data-first="${p.id}">WhatsApp</a>`:`<button class="btn small" data-cpmsg="${p.id}">Copiar mensagem</button>`}${p.insta?`<a class="btn ghost small" href="${esc(igUrl(p.insta))}" target="_blank" rel="noopener" data-igcopy="${p.id}">Instagram</a>`:""}${p.whats?"":`<button class="btn ghost small" data-sent="${p.id}">Já mandei</button>`}<button class="icon-btn" data-skip="${p.id}" title="Mandar para o fim da fila" aria-label="Pular">↷</button></div></div>`).join("")+(all.length>list.length?`<p class="note">E mais ${all.length-list.length} na lista.</p>`:"");
+  const Q=$("queue");
+  Q.querySelectorAll("[data-goto2]").forEach(b=>b.onclick=()=>show(b.dataset.goto2));
+  Q.querySelectorAll("[data-first]").forEach(a=>a.addEventListener("click",()=>{const p=byId(a.dataset.first);setTimeout(()=>{touch(p,"first");toast("Abordagem registrada. Follow-up em "+fmtD(p.data))},50)}));
+  Q.querySelectorAll("[data-cpmsg]").forEach(b=>b.onclick=()=>copyText(firstMsg(byId(b.dataset.cpmsg)),"Mensagem copiada. Depois de enviar, toque em Já mandei"));
+  Q.querySelectorAll("[data-igcopy]").forEach(a=>a.addEventListener("click",()=>copyText(firstMsg(byId(a.dataset.igcopy)),"Mensagem copiada: cole no direct")));
+  Q.querySelectorAll("[data-sent]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.sent);touch(p,"first");toast("Abordagem registrada. Follow-up em "+fmtD(p.data))});
+  Q.querySelectorAll("[data-skip]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.skip);S.pipeline=S.pipeline.filter(x=>x!==p);S.pipeline.push(p);changed()});
+}
+function renderFups(){
+  const t=today(),list=S.pipeline.filter(p=>["contato","proposta","negocia"].includes(p.status)&&p.data&&p.data<=t).sort((a,b)=>a.data>b.data?1:-1);
+  $("fuCount").textContent=list.length?list.length+(list.length===1?" para hoje":" para hoje"):"em dia";
+  $("fuCount").className="chip "+(list.some(p=>p.data<t)?"bad":list.length?"xp":"good");
+  $("fups").innerHTML=list.length?list.map(p=>{const late=p.data<t,n=(p.touches||[]).filter(x=>x.k==="fu").length,msg=fuMsg(p);
+    return`<div class="lead"><div class="lead-h"><b>${esc(p.nome)}</b><span class="chip ${late?"bad":"xp"}">${late?"Atrasado "+fmtD(p.data):"Hoje"}</span><span class="note">${esc(p.acao||"")}${n?" · "+n+" follow-up"+(n>1?"s":""):""}</span></div>
+    <div class="acts">${p.whats?`<a class="btn wa small" href="${esc(waLink(p,msg))}" target="_blank" rel="noopener" data-fu="${p.id}">WhatsApp</a>`:`<button class="btn small" data-fucp="${p.id}">Copiar mensagem</button><button class="btn ghost small" data-fudone="${p.id}">Já mandei</button>`}<button class="btn ghost small" data-rep="${p.id}">Respondeu</button><button class="btn ghost small" data-snooze="${p.id}">Adiar 3 dias</button><button class="btn ghost small" data-lost="${p.id}">Encerrar</button></div></div>`}).join(""):`<p class="empty">Nenhum follow-up para hoje. Quem você abordar entra aqui 3 dias depois, se não responder.</p>`;
+  const F=$("fups");
+  F.querySelectorAll("[data-fu]").forEach(a=>a.addEventListener("click",()=>{const p=byId(a.dataset.fu);setTimeout(()=>{touch(p,"fu");toast("Follow-up registrado")},50)}));
+  F.querySelectorAll("[data-fucp]").forEach(b=>b.onclick=()=>copyText(fuMsg(byId(b.dataset.fucp))));
+  F.querySelectorAll("[data-fudone]").forEach(b=>b.onclick=()=>{touch(byId(b.dataset.fudone),"fu");toast("Follow-up registrado")});
+  F.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.rep);p.replied=p.replied||today();if(p.status==="contato")p.status="negocia";p.acao=p.status==="proposta"?"Fechar: tirar dúvidas da proposta":"Marcar conversa e mandar proposta";p.data=addDays(1);changed();toast("Boa! Próximo passo: proposta")});
+  F.querySelectorAll("[data-snooze]").forEach(b=>b.onclick=()=>{byId(b.dataset.snooze).data=addDays(3);changed();toast("Adiado 3 dias")});
+  F.querySelectorAll("[data-lost]").forEach(b=>b.onclick=()=>{byId(b.dataset.lost).status="perdido";changed();toast("Encerrado. Bola pra frente")});
+}
+const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
+function funnelOf(arr){const touched=arr.filter(p=>(p.touches&&p.touches.length)||p.status!=="prospect");
+  const rep=touched.filter(p=>p.replied||["negocia","proposta","fechado"].includes(p.status));
+  const prop=touched.filter(p=>p.proposed||["proposta","fechado"].includes(p.status));
+  const won=touched.filter(p=>p.status==="fechado");return{touched,rep,prop,won}}
+function renderFunnel(){
+  const f=funnelOf(S.pipeline),T=f.touched.length;
+  const steps=[["Abordados",T],["Responderam",f.rep.length],["Propostas",f.prop.length],["Fechados",f.won.length]];
+  $("funnel").innerHTML=steps.map(([n,v],i)=>`<div class="fstep"><div class="row" style="justify-content:space-between"><span class="label">${n}</span><span class="num">${v}${i?` · ${pct(v,T)}`:""}</span></div><div class="bar"><i style="width:${T?Math.max(v?2:0,v/T*100):0}%;${i===3?"background:var(--good);box-shadow:0 0 12px var(--good)":""}"></i></div></div>`).join("");
+  $("funnelSub").textContent=S.pipeline.filter(p=>p.status==="prospect").length+" na fila para abordar";
+  const groups={};for(const p of f.touched){const k=p.nicho||"Sem nicho";(groups[k]=groups[k]||[]).push(p)}
+  const rows=Object.entries(groups).map(([k,a])=>[k,funnelOf(a)]).sort((a,b)=>b[1].touched.length-a[1].touched.length);
+  $("byNicho").innerHTML=rows.length?rows.map(([k,g])=>`<tr><td>${esc(k)}</td><td class="r num">${g.touched.length}</td><td class="r num">${g.rep.length} <span class="muted">(${pct(g.rep.length,g.touched.length)})</span></td><td class="r num">${g.prop.length}</td><td class="r num">${g.won.length}</td></tr>`).join(""):`<tr><td colspan="5" class="empty">Aparece quando você começar a abordar.</td></tr>`;
+  const kinds=["personalizada","genérica"].map(k=>[k,funnelOf(f.touched.filter(p=>(p.msgKind||"genérica")===k))]);
+  $("byKind").innerHTML=kinds.map(([k,g])=>`<tr><td>${k==="personalizada"?"Personalizada (com observação)":"Genérica"}</td><td class="r num">${g.touched.length}</td><td class="r num">${g.rep.length} <span class="muted">(${pct(g.rep.length,g.touched.length)})</span></td></tr>`).join("");
+  let tip;
+  if(T<10)tip=`Com 10 abordagens ou mais o funil começa a mostrar o que funciona. Até agora: ${T}.`;
+  else{const best=rows.filter(([k,g])=>g.touched.length>=5).sort((a,b)=>b[1].rep.length/b[1].touched.length-a[1].rep.length/a[1].touched.length)[0];
+    const [kp,kg]=kinds.map(x=>x[1]);tip=best?`Melhor nicho até agora: ${best[0]}, com ${pct(best[1].rep.length,best[1].touched.length)} de resposta. Concentre a próxima lista nele.`:"Abordar pelo menos 5 empresas do mesmo nicho mostra qual responde melhor.";
+    if(kp.touched.length>=5&&kg.touched.length>=5)tip+=` Mensagens personalizadas: ${pct(kp.rep.length,kp.touched.length)} de resposta, contra ${pct(kg.rep.length,kg.touched.length)} das genéricas.`}
+  $("funnelTip").textContent=tip;
+}
+
+/* ---------- propostas, ofertas, perfil ---------- */
+let offSig="",offS=null;
+function renderOffers(force){const sig=S.offers.map(o=>o.id).join(",");if(!force&&sig===offSig&&offS===S&&$("offers").dataset.built)return;offSig=sig;offS=S;$("offers").dataset.built=1;
+  $("offers").innerHTML=S.offers.map((o,i)=>`<div class="offer" data-oid="${o.id}"><div class="row" style="justify-content:space-between"><span class="label">Oferta ${i+1}</span><button class="icon-btn" data-odel="${o.id}" aria-label="Remover oferta">×</button></div>
+   <input type="text" data-of="nome" value="${esc(o.nome)}" placeholder="Nome da oferta" aria-label="Nome da oferta">
+   <textarea data-of="desc" rows="2" placeholder="O que é, em uma frase para o cliente" aria-label="Descrição">${esc(o.desc)}</textarea>
+   <textarea data-of="inclui" rows="3" placeholder="O que inclui (um item por linha)" aria-label="O que inclui">${esc(o.inclui)}</textarea>
+   <div class="pform" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label class="note fl">Preço R$<input type="number" data-of="preco" value="${o.preco||""}" min="0" step="50"></label><label class="note fl">Mensal R$<input type="number" data-of="mensal" value="${o.mensal||""}" min="0" step="10"></label><label class="note fl">Prazo (dias)<input type="number" data-of="prazo" value="${o.prazo||""}" min="1"></label></div></div>`).join("")||`<p class="empty">Nenhuma oferta. Crie pelo menos uma.</p>`;
+  $("offers").querySelectorAll("[data-of]").forEach(el=>el.addEventListener("input",()=>{const o=S.offers.find(x=>x.id===el.closest("[data-oid]").dataset.oid);const k=el.dataset.of;o[k]=["preco","mensal","prazo"].includes(k)?(+el.value||0):el.value;save();fillOfferSelect();renderDoc()}));
+  $("offers").querySelectorAll("[data-odel]").forEach(b=>b.onclick=()=>{S.offers=S.offers.filter(o=>o.id!==b.dataset.odel);changed()});
+}
+function fillOfferSelect(){const sel=$("prOff"),cur=sel.value;sel.innerHTML=S.offers.map(o=>`<option value="${o.id}">${esc(o.nome||"Oferta sem nome")}${o.preco?" · "+brl(o.preco):""}</option>`).join("");if(S.offers.some(o=>o.id===cur))sel.value=cur}
+const PF={pfNome:"nome",pfCidade:"cidade",pfWhats:"whats",pfInsta:"insta",pfHeadline:"headline",pfSlug:"slug",pfProb:"caseProb",pfSol:"caseSol",pfRes:"caseRes"};
+function renderProps(){
+  renderOffers();fillOfferSelect();
+  $("cliList").innerHTML=S.pipeline.filter(p=>!["fechado","perdido"].includes(p.status)).map(p=>`<option value="${esc(p.nome)}"></option>`).join("");
+  if($("prVal").value===""&&curOffer())$("prVal").value=curOffer().preco||"";
+  for(const id in PF){const el=$(id);if(document.activeElement!==el)el.value=S.profile[PF[id]]||""}
+  pubLink();renderDoc();
+}
+function curOffer(){return S.offers.find(o=>o.id===$("prOff").value)||S.offers[0]}
+function propNum(){return new Date().getFullYear()+"-"+String(S.proposals.length+1).padStart(3,"0")}
+function renderDoc(){
+  const o=curOffer(),pr=S.profile,cli=$("prCli").value.trim(),val=+$("prVal").value||(o&&o.preco)||0,dias=+$("prDias").value||7;
+  if(!o){$("propDoc").innerHTML=`<p>Crie uma oferta para gerar a proposta.</p>`;return}
+  const until=new Date();until.setDate(until.getDate()+dias);
+  const lines=String(o.inclui||"").split(/\n/).map(s=>s.trim()).filter(Boolean);
+  $("propDoc").innerHTML=`<div class="pd-head"><div><div class="pd-name">${esc(pr.nome||"Seu nome")}</div><div class="pd-sub">Desenvolvedor${pr.cidade?" · "+esc(pr.cidade):""}</div></div><div class="pd-meta">Proposta nº ${propNum()}<br>${new Date().toLocaleDateString("pt-BR",{day:"numeric",month:"long",year:"numeric"})}</div></div>
+   <p class="pd-for">Para: <b>${esc(cli||"Nome do cliente")}</b></p><h1 class="pd-title">${esc(o.nome)}</h1>
+   <h3>O que vou fazer</h3><p>${esc(o.desc)}</p>
+   ${lines.length?`<h3>O que está incluso</h3><ul>${lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
+   <div class="pd-grid"><div><span>Prazo</span><b>${o.prazo||"—"} dias úteis</b><small>a partir da aprovação</small></div><div><span>Investimento</span><b>${brl(val)}</b><small>${esc($("prPag").value)}</small></div>${o.mensal?`<div><span>Manutenção (opcional)</span><b>${brl(o.mensal)}/mês</b><small>hospedagem, suporte e pequenas melhorias</small></div>`:""}</div>
+   ${$("prExtra").value.trim()?`<h3>Observações</h3><p>${esc($("prExtra").value.trim()).replace(/\n/g,"<br>")}</p>`:""}
+   <h3>Próximo passo</h3><p>Para aprovar, é só responder "aprovado" no WhatsApp. Começo em até 2 dias úteis depois da aprovação.</p>
+   <p class="pd-valid">Proposta válida até ${until.toLocaleDateString("pt-BR")}.</p>
+   <div class="pd-foot">${esc(pr.nome||"Seu nome")}${pr.whats?" · WhatsApp "+esc(pr.whats):""}${pr.insta?" · "+esc(pr.insta):""}</div>`;
+}
+["prCli","prVal","prDias","prPag","prExtra"].forEach(id=>$(id).addEventListener("input",renderDoc));
+$("prOff").addEventListener("change",()=>{const o=curOffer();$("prVal").value=o&&o.preco||"";renderDoc()});
+$("offAdd").onclick=()=>{S.offers.push({id:uid(),nome:"",desc:"",inclui:"",prazo:7,preco:0,mensal:0});changed()};
+$("prPrint").onclick=()=>{renderDoc();$("printArea").innerHTML='<div class="propdoc">'+$("propDoc").innerHTML+'</div>';const t=document.title;document.title="Proposta "+($("prCli").value.trim()||"")+" - "+(curOffer()?curOffer().nome:"");window.print();setTimeout(()=>document.title=t,500)};
+$("prSent").onclick=()=>{const cli=$("prCli").value.trim(),o=curOffer();if(!cli){toast("Escolha ou digite o cliente");$("prCli").focus();return}if(!o){toast("Crie uma oferta antes");return}
+  const val=+$("prVal").value||o.preco||0;let p=S.pipeline.find(x=>x.nome.toLowerCase()===cli.toLowerCase());
+  if(!p){p=newLead({nome:cli});p.touches=[{d:today(),k:"first"}];S.pipeline.push(p)}
+  p.status="proposta";p.proposed=true;p.replied=p.replied||today();p.valor=val;p.acao="Follow-up da proposta";p.data=addDays(2);
+  S.proposals.push({id:uid(),num:propNum(),cli,offer:o.nome,valor:val,date:today()});changed();toast("Proposta registrada. Follow-up em "+fmtD(p.data))};
+for(const id in PF)$(id).addEventListener("input",e=>{let v=e.target.value;if(id==="pfSlug"){v=v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9-]+/g,"-").replace(/^-+/,"").slice(0,40);if(v!==e.target.value)e.target.value=v}S.profile[PF[id]]=v;save();renderDoc()});
+function pubLink(){const ok=S.profile.published&&S.profile.slug;const url=location.origin+"/s/"+S.profile.slug;$("pfLink").hidden=!ok;$("pfCopy").hidden=!ok;if(ok){$("pfLink").href=url;$("pfLink").textContent=url.replace(/^https?:\/\//,"")}}
+$("pfCopy").onclick=()=>copyText(location.origin+"/s/"+S.profile.slug,"Link copiado");
+$("pfPublish").onclick=async()=>{const pr=S.profile;$("pfMsg").textContent="";
+  if(!sb||!session){$("pfMsg").textContent="Entre na sua conta para publicar a página.";return}
+  if(!pr.nome.trim()||!pr.whats.trim()){$("pfMsg").textContent="Preencha pelo menos nome e WhatsApp.";return}
+  const slug=(pr.slug||"").replace(/-+$/,"");if(!/^[a-z0-9-]{3,40}$/.test(slug)){$("pfMsg").textContent="Escolha um endereço com 3 a 40 letras, números ou hífen.";$("pfSlug").focus();return}
+  const data={nome:pr.nome.trim(),cidade:pr.cidade.trim(),whats:PH(pr.whats),insta:pr.insta.trim(),headline:pr.headline.trim(),case:{prob:pr.caseProb.trim(),sol:pr.caseSol.trim(),res:pr.caseRes.trim()},
+    offers:S.offers.filter(o=>o.nome.trim()).map(o=>({nome:o.nome,desc:o.desc,inclui:o.inclui,prazo:o.prazo,preco:o.preco,mensal:o.mensal}))};
+  $("pfPublish").disabled=true;$("pfMsg").textContent="Publicando…";
+  const {error}=await sb.from("devpath_public").upsert({slug,user_id:session.user.id,data,published:true,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  $("pfPublish").disabled=false;
+  if(error){$("pfMsg").textContent=error.code==="23505"?"Esse endereço já é de outra pessoa. Escolha outro.":"Não foi possível publicar: "+error.message;return}
+  pr.slug=slug;pr.published=true;changed();$("pfMsg").textContent="Página no ar. Sempre que mudar algo, publique de novo.";};
+
+/* ---------- app instalável ---------- */
+let installEvt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;$("installBtn").hidden=false});
+$("installBtn").onclick=async()=>{if(!installEvt)return;installEvt.prompt();await installEvt.userChoice.catch(()=>{});installEvt=null;$("installBtn").hidden=true};
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("/sw.js").catch(()=>{});
+
 /* ---------- events ---------- */
 function show(v){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));document.querySelectorAll(".view").forEach(s=>s.hidden=s.id!=="v-"+v);try{localStorage.setItem("painel5k-tab",v)}catch(e){}}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -227,7 +372,10 @@ $("todayReset").onclick=()=>{S.today={date:today(),items:["","",""],done:[false,
 $("weekForm").onsubmit=e=>{e.preventDefault();const v=$("weekInput").value.trim();if(!v)return;S.week.push({id:uid(),text:v,col:"todo"});$("weekInput").value="";changed()};
 $("clearDone").onclick=()=>{const n=S.week.filter(w=>w.col==="done").length;S.week=S.week.filter(w=>w.col!=="done");changed();toast(n+" arquivado"+(n===1?"":"s"))};
 $("pData").value=today();$("sDate").value=today();$("iDate").value=today();
-$("pipeForm").onsubmit=e=>{e.preventDefault();S.pipeline.push({id:uid(),nome:$("pNome").value.trim(),tipo:$("pTipo").value,valor:+$("pValor").value||0,status:"prospect",acao:$("pAcao").value.trim(),data:$("pData").value});["pNome","pValor","pAcao"].forEach(i=>$(i).value="");changed()};
+$("pipeForm").onsubmit=e=>{e.preventDefault();S.pipeline.push(newLead({nome:$("pNome").value,nicho:$("pNicho").value,whats:$("pWhats").value,insta:$("pInsta").value,obs:$("pObs").value,tipo:$("pTipo").value,valor:+$("pValor").value||0,acao:$("pAcao").value.trim()||"Primeiro contato",data:$("pData").value}));["pNome","pNicho","pWhats","pInsta","pObs","pValor","pAcao"].forEach(i=>$(i).value="");changed();toast("Adicionado à fila")};
+$("bulkGo").onclick=()=>{const lines=$("bulkTxt").value.split(/\n/).map(l=>l.trim()).filter(Boolean);let n=0;
+  for(const l of lines){const f=l.split(/;|\t/).map(x=>x.trim());if(!f[0])continue;S.pipeline.push(newLead({nome:f[0],nicho:f[1],whats:f[2],insta:f[3],obs:f.slice(4).join("; ")}));n++}
+  if(!n){toast("Nada para importar");return}$("bulkTxt").value="";changed();toast(n+(n===1?" empresa importada":" empresas importadas"))};
 $("studyForm").onsubmit=e=>{e.preventDefault();S.study.push({id:uid(),date:$("sDate").value||today(),topic:$("sTopic").value.trim(),min:+$("sMin").value||0});$("sTopic").value="";changed();toast("Estudo registrado")};
 $("studyGoal").onchange=e=>{S.goal.studyH=Math.max(1,+e.target.value||10);changed()};
 $("gFixed").onchange=e=>{S.goal.fixed=Math.max(0,+e.target.value||0);changed()};
@@ -238,13 +386,12 @@ $("oGoal").onchange=e=>{S.goal.outreachDay=Math.max(1,+e.target.value||10);chang
 $("aiCopy").onclick=()=>copyFrom($("aiOut"));
 $("aiSent").onclick=()=>{const nome=$("aiNome").value.trim();if(!nome){toast("Preencha o nome antes");return}
   const f=new Date();f.setDate(f.getDate()+3);
-  S.pipeline.push({id:uid(),nome,tipo:"Freela",valor:0,status:"contato",acao:"Follow-up ("+($("aiTipo").value.trim()||"contato")+")",data:iso(f)});
-  bumpOut(1);toast("Registrado. Follow-up em "+fmtD(iso(f)));["aiNome","aiTipo","aiObs"].forEach(i=>$(i).value="");$("aiOut").value=""};
+  const p=newLead({nome,nicho:$("aiTipo").value,obs:$("aiObs").value});S.pipeline.push(p);touch(p,"first");toast("Registrado. Follow-up em "+fmtD(iso(f)));["aiNome","aiTipo","aiObs"].forEach(i=>$(i).value="");$("aiOut").value=""};
 $("aiForm").onsubmit=e=>{e.preventDefault();
   const nome=$("aiNome").value.trim(),tipo=$("aiTipo").value.trim(),canal=$("aiCanal").value;
   let obs=$("aiObs").value.trim().replace(/[.!]+$/,"");obs=obs.charAt(0).toLowerCase()+obs.slice(1);
   const oi=canal==="E-mail"?"Olá, "+nome+", tudo bem?":"Oi, "+nome+", tudo bem?";
-  const msg=oi+" Sou o Kauã, desenvolvedor aqui de [cidade]. Vi que "+obs+". Eu resolvo esse tipo de coisa para negócios como "+(tipo?"o seu ("+tipo+")":"o seu")+", com [solução em uma frase], e isso costuma poupar um bom tempo na semana. Posso te mandar um exemplo rápido de como ficaria para "+nome+"?";
+  const msg=oi+" Sou o "+me().nome+", desenvolvedor aqui de "+me().cidade+". Vi que "+obs+". Eu resolvo esse tipo de coisa para negócios como "+(tipo?"o seu ("+tipo+")":"o seu")+", com [solução em uma frase], e isso costuma poupar um bom tempo na semana. Posso te mandar um exemplo rápido de como ficaria para "+nome+"?";
   $("aiOut").value=msg;$("aiNote").textContent="Revise, troque o que está entre colchetes e envie com o seu jeito de falar."};
 $("gMin").onchange=e=>{S.goal.min=Math.max(0,+e.target.value||0);if(S.goal.max<S.goal.min)S.goal.max=S.goal.min;changed()};
 $("gMax").onchange=e=>{S.goal.max=Math.max(S.goal.min,+e.target.value||0);changed()};
@@ -274,7 +421,7 @@ function authUI(){
 async function loadRemote(){
   sync("busy","Carregando…");
   const {data,error}=await sb.from("devpath_state").select("data").eq("user_id",session.user.id).maybeSingle();
-  if(error){sync("err","Não foi possível carregar seus dados");return}
+  if(error){loadLocal();sync("err","Sem conexão: usando a cópia deste aparelho");return}
   if(data&&data.data){S=merge(data.data);render();sync("ok","Salvo na nuvem")}
   else{loadLocal();dirty=true;flush()}
 }
