@@ -294,7 +294,7 @@
       name: p.nome, category: p.nicho || (p.place && p.place.category) || "", city: cityOf(p.address || (p.place && p.place.address)),
       hasPhone: !!p.whats, websiteStatus: website, websiteDomain: p.opp ? p.opp.websiteDomain : (p.place ? domainOf(p.place.website) : ""),
       ratingCount: p.place && p.place.ratingCount != null ? p.place.ratingCount : null,
-      signals: p.opp ? p.opp.signals : [], notes: [p.obs, p.notes].filter(Boolean).join(". ").slice(0, 1200), status: D.STAGE_NAME[p.status] || "",
+      signals: p.opp ? p.opp.signals : [], notes: [p.obs, p.notes, D.demoOf(p) ? "Já existe uma prévia do site montada para essa empresa, que vai junto na mensagem" : ""].filter(Boolean).join(". ").slice(0, 1200), status: D.STAGE_NAME[p.status] || "",
     };
   }
 
@@ -408,6 +408,12 @@
             ${p.opp && p.opp.signals && p.opp.signals.length ? `<ul class="ld-signals">${p.opp.signals.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
           </div>
           <div class="ld-block">
+            <div class="row" style="justify-content:space-between"><h3>Prévia do site</h3>${D.demoOf(p) ? `<a class="btn ghost small" href="${esc(D.demoOf(p))}" target="_blank" rel="noopener">Abrir prévia</a>` : ""}</div>
+            <label class="fl" for="ldDemo"><span class="note">Cole o link da prévia que você montou (ZOD, Vercel, etc.). Ele entra sozinho na mensagem e na proposta.</span>
+              <input type="url" id="ldDemo" placeholder="https://..." value="${esc(p.demoUrl || "")}" inputmode="url" autocomplete="off"></label>
+            <p class="note warn-txt" id="ldDemoErr" hidden>O link precisa começar com https:// e não pode ter espaços.</p>
+          </div>
+          <div class="ld-block">
             <div class="row" style="justify-content:space-between"><h3>Mensagem</h3><span class="note">${p.status === "prospect" ? "Primeiro contato" : "Retorno"}</span></div>
             <div class="row">
               <select id="ldCanal" aria-label="Canal"><option>WhatsApp</option><option>Instagram</option><option>E-mail</option></select>
@@ -421,7 +427,7 @@
               <button class="btn ghost small" id="ldCopy">Copiar</button>
               <button class="btn small" id="ldSent" ${p.dnc ? "disabled" : ""}>Registrar envio</button>
             </div>
-            <p class="note" id="ldMsgNote">${p.dnc ? "Essa empresa pediu para não ser contatada." : p.whats ? "O WhatsApp só abre quando você clica, com a mensagem para você revisar. Nada é enviado sozinho. O número é o telefone comercial do Google e pode não ter WhatsApp." : "Sem telefone: copie a mensagem e envie pelo canal que tiver."}</p>
+            <p class="note" id="ldMsgNote">${p.dnc ? "Essa empresa pediu para não ser contatada." : p.whats ? "O WhatsApp só abre quando você clica, com a mensagem para você revisar. Nada é enviado sozinho. O número é o telefone comercial público da empresa e pode não ter WhatsApp." : "Sem telefone: copie a mensagem e envie pelo canal que tiver."}</p>
           </div>
           <div class="ld-block">
             <h3>Anotações</h3>
@@ -474,6 +480,17 @@
       renderLead();
     };
     $("ldNext").onchange = (e) => { p.data = e.target.value; D.changed(); };
+    $("ldDemo").addEventListener("change", (e) => {
+      const v = e.target.value.trim();
+      const ok = !v || /^https?:\/\/[^\s]+$/i.test(v);
+      $("ldDemoErr").hidden = ok;
+      if (!ok) return;
+      const had = !!p.demoUrl;
+      p.demoUrl = v;
+      if (v && !had) D.logEv(p, "previa", "Prévia do site adicionada");
+      D.changed();
+      renderLead();
+    });
     $("ldNotes").addEventListener("input", (e) => { p.notes = e.target.value; D.save(); });
     $("leadBody").querySelector("[data-close]").onclick = () => dlg.close();
     if ($("ldRefresh")) $("ldRefresh").onclick = refreshPlace;
@@ -510,7 +527,8 @@
     try {
       const data = await call("ai", aiPayload(p, task));
       if (task === "message") {
-        p.draftMsg = data.result.mensagem;
+        const demo = D.demoOf(p);
+        p.draftMsg = demo && !data.result.mensagem.includes(demo) ? `${data.result.mensagem}\n\nPrévia do site: ${demo}` : data.result.mensagem;
         D.logEv(p, "ia", "Mensagem gerada com IA");
       } else {
         p.ai = p.ai || {};

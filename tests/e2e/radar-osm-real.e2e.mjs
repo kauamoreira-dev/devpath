@@ -65,6 +65,17 @@ await page.evaluate((id) => window.DevPath.openLead(id), lead.id);
 await page.waitForSelector("#leadDlg[open]");
 assert.ok((await page.getAttribute("#ldWa", "href")).startsWith("https://wa.me/5593991864540?text="));
 assert.equal(await page.locator("#ldAiMsg").count(), 0, "sem chave de IA não mostra botão de IA");
+
+// link da prévia: inválido é recusado; válido entra na mensagem do WhatsApp
+await page.fill("#ldDemo", "isso não é link");
+await page.dispatchEvent("#ldDemo", "change");
+assert.ok(await page.isVisible("#ldDemoErr"));
+await page.fill("#ldDemo", "https://previa-exemplo.vercel.app");
+await page.dispatchEvent("#ldDemo", "change");
+await page.waitForTimeout(150);
+assert.match(await page.inputValue("#ldMsg"), /prévia de como poderia ficar o site de vocês: https:\/\/previa-exemplo\.vercel\.app/);
+assert.match(decodeURIComponent(await page.getAttribute("#ldWa", "href")), /previa-exemplo\.vercel\.app/);
+assert.ok(await page.isVisible("text=Abrir prévia"));
 await page.click("#ldPropAi");
 await page.waitForSelector("#ldUseProp");
 assert.match(await page.textContent("#ldProp"), /Site com agendamento online para Churrascaria Boi Gordo/);
@@ -74,6 +85,17 @@ await page.click("#ldUseProp");
 await page.waitForTimeout(300);
 assert.match(await page.textContent("#propDoc"), /Churrascaria Boi Gordo/);
 assert.match(await page.textContent("#propDoc"), /Site com agendamento online/);
+assert.match(await page.textContent("#propDoc"), /Prévia do site/);
+assert.match(await page.textContent("#propDoc"), /previa-exemplo\.vercel\.app/);
+
+// registrar o envio marca que o contato foi com prévia, e o funil separa
+await page.evaluate((id) => window.DevPath.openLead(id), lead.id);
+await page.click("#ldSent");
+await page.keyboard.press("Escape");
+assert.equal(await page.evaluate((id) => window.DevPath.state.pipeline.find((p) => p.id === id).withDemo, lead.id), true);
+await page.evaluate(() => window.DevPath.show("pipeline"));
+await page.evaluate(() => window.DevPath.changed());
+assert.match(await page.textContent("#byKind"), /Com prévia do site\s*1/);
 if (OUT) await page.screenshot({ path: OUT + "/real-proposta.png" });
 
 assert.deepEqual(errors, []);

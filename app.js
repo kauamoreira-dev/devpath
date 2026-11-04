@@ -228,18 +228,21 @@ function addDays(n){const d=new Date();d.setDate(d.getDate()+n);return iso(d)}
 function me(){return{nome:S.profile.nome.trim()||"[seu nome]",cidade:S.profile.cidade.trim()||"[cidade]"}}
 function lcFirst(s){s=String(s||"").trim().replace(/[.!]+$/,"");return s.charAt(0).toLowerCase()+s.slice(1)}
 function newLead(o){return{id:uid(),nome:String(o.nome||"").trim(),nicho:String(o.nicho||"").trim(),whats:String(o.whats||"").trim(),insta:String(o.insta||"").trim(),obs:String(o.obs||"").trim(),tipo:o.tipo||"Freela",valor:o.valor||0,status:"prospect",acao:o.acao||"Primeiro contato",data:o.data||today(),touches:[]}}
-function firstMsg(p){const m=me();
+function demoOf(p){const u=String(p&&p.demoUrl||"").trim();return /^https?:\/\/[^\s]+$/i.test(u)?u:""}
+function firstMsg(p){const m=me(),demo=demoOf(p);
+  if(demo)return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Montei uma prévia de como poderia ficar o site de vocês: ${demo} É só uma ideia, sem compromisso. Faz sentido conversarmos 10 minutos sobre ela? Se não fizer sentido, é só me avisar.`;
   if(p.obs)return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Vi que ${lcFirst(p.obs)}. Eu resolvo esse tipo de coisa para negócios como ${p.nicho?"o seu ("+p.nicho+")":"o seu"}, e isso costuma poupar um bom tempo na semana. Posso te mandar um exemplo rápido de como ficaria para vocês?`;
   return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Ajudo negócios como o seu a ganhar tempo com site, agendamento online e automação no WhatsApp. Posso te fazer uma pergunta rápida sobre como vocês atendem hoje?`}
 function fuMsg(p){const n=(p.touches||[]).filter(t=>t.k==="fu").length;
   if(p.status==="proposta")return`Oi, ${p.nome}! Conseguiu dar uma olhada na proposta que te mandei? Se tiver qualquer dúvida ou quiser ajustar algo, me fala que eu adapto.`;
   if(p.status==="negocia"||p.status==="respondeu")return`Oi, ${p.nome}! Conseguimos marcar aquela conversa rápida? Pode ser por ligação ou áudio, no horário que for melhor para você.`;
+  if(n===0&&demoOf(p))return`Oi, ${p.nome}! Conseguiu ver a prévia do site que montei para vocês? ${demoOf(p)} Se quiser mudar algo, eu ajusto. Se não for prioridade agora, tudo bem, é só me falar que eu não insisto.`;
   if(n===0)return`Oi, ${p.nome}! Passando só para saber se você viu minha última mensagem. Se não for prioridade agora, tudo bem, é só me falar que eu não insisto.`;
   return`Oi, ${p.nome}! Última mensagem por aqui: se quiser, te mando um exemplo pronto de como ficaria para vocês, sem compromisso. Se não fizer sentido agora, sem problema!`}
 function waLink(p,msg){return p.whats?`https://wa.me/${PH(p.whats)}?text=${encodeURIComponent(msg)}`:""}
 function logEv(p,t,txt){p.log=p.log||[];p.log.push({d:today(),t,txt:String(txt||"").slice(0,300)});if(p.log.length>60)p.log=p.log.slice(-60)}
 function touch(p,k){p.touches=p.touches||[];p.touches.push({d:today(),k});logEv(p,k==="first"?"contato":"followup",k==="first"?"Primeiro contato":"Follow-up");
-  if(k==="first"){if(p.status==="prospect")p.status="contato";p.msgKind=p.obs?"personalizada":"genérica";p.acao="Follow-up";p.data=addDays(3);S.outreach[today()]=(S.outreach[today()]||0)+1;
+  if(k==="first"){if(p.status==="prospect")p.status="contato";p.msgKind=p.obs?"personalizada":"genérica";p.withDemo=!!demoOf(p);p.acao="Follow-up";p.data=addDays(3);S.outreach[today()]=(S.outreach[today()]||0)+1;
     const n=S.outreach[today()];if(n===S.goal.outreachDay)setTimeout(()=>toast("Meta do dia batida!"),400)}
   else{const n=p.touches.filter(t=>t.k==="fu").length;p.data=addDays(n>=2?7:4);if(p.status==="contato")p.acao=n>=2?"Sem resposta: decidir se encerra":"Follow-up "+(n+1)}
   changed()}
@@ -250,7 +253,7 @@ function renderQueue(){
   const all=S.pipeline.filter(p=>p.status==="prospect"&&!p.dnc),list=all.slice(0,Math.min(10,Math.max(3,left)));
   $("qCount").textContent=left?left+" para bater a meta":"meta batida";
   if(!all.length){$("queue").innerHTML=`<div class="empty">Sua lista está vazia. Em <button class="warn-link" data-goto2="pipeline">Clientes e vagas</button>, adicione empresas (dá para colar várias de uma vez) e elas aparecem aqui.</div>`}
-  else $("queue").innerHTML=list.map(p=>`<div class="lead"><div class="lead-h"><b>${esc(p.nome)}</b>${p.nicho?`<span class="chip">${esc(p.nicho)}</span>`:""}${p.obs?"":`<span class="chip bad" title="Sem observação a mensagem fica genérica">genérica</span>`}</div>${p.obs?`<p class="note">${esc(p.obs)}</p>`:""}
+  else $("queue").innerHTML=list.map(p=>`<div class="lead"><div class="lead-h"><b>${esc(p.nome)}</b>${p.nicho?`<span class="chip">${esc(p.nicho)}</span>`:""}${demoOf(p)?`<span class="chip good">com prévia</span>`:p.obs?"":`<span class="chip bad" title="Sem observação nem prévia, a mensagem fica genérica">genérica</span>`}</div>${p.obs?`<p class="note">${esc(p.obs)}</p>`:""}
     <div class="acts">${p.whats?`<a class="btn wa small" href="${esc(waLink(p,firstMsg(p)))}" target="_blank" rel="noopener" data-first="${p.id}">WhatsApp</a>`:`<button class="btn small" data-cpmsg="${p.id}">Copiar mensagem</button>`}${p.insta?`<a class="btn ghost small" href="${esc(igUrl(p.insta))}" target="_blank" rel="noopener" data-igcopy="${p.id}">Instagram</a>`:""}${p.whats?"":`<button class="btn ghost small" data-sent="${p.id}">Já mandei</button>`}<button class="icon-btn" data-skip="${p.id}" title="Mandar para o fim da fila" aria-label="Pular">↷</button></div></div>`).join("")+(all.length>list.length?`<p class="note">E mais ${all.length-list.length} na lista.</p>`:"");
   const Q=$("queue");
   Q.querySelectorAll("[data-goto2]").forEach(b=>b.onclick=()=>show(b.dataset.goto2));
@@ -289,11 +292,16 @@ function renderFunnel(){
   const rows=Object.entries(groups).map(([k,a])=>[k,funnelOf(a)]).sort((a,b)=>b[1].touched.length-a[1].touched.length);
   $("byNicho").innerHTML=rows.length?rows.map(([k,g])=>`<tr><td>${esc(k)}</td><td class="r num">${g.touched.length}</td><td class="r num">${g.rep.length} <span class="muted">(${pct(g.rep.length,g.touched.length)})</span></td><td class="r num">${g.prop.length}</td><td class="r num">${g.won.length}</td></tr>`).join(""):`<tr><td colspan="5" class="empty">Aparece quando você começar a abordar.</td></tr>`;
   const kinds=["personalizada","genérica"].map(k=>[k,funnelOf(f.touched.filter(p=>(p.msgKind||"genérica")===k))]);
-  $("byKind").innerHTML=kinds.map(([k,g])=>`<tr><td>${k==="personalizada"?"Personalizada (com observação)":"Genérica"}</td><td class="r num">${g.touched.length}</td><td class="r num">${g.rep.length} <span class="muted">(${pct(g.rep.length,g.touched.length)})</span></td></tr>`).join("");
+  const demos=[["Com prévia do site",funnelOf(f.touched.filter(p=>p.withDemo))],["Sem prévia",funnelOf(f.touched.filter(p=>!p.withDemo))]];
+  const row=(name,g)=>`<tr><td>${name}</td><td class="r num">${g.touched.length}</td><td class="r num">${g.rep.length} <span class="muted">(${pct(g.rep.length,g.touched.length)})</span></td></tr>`;
+  $("byKind").innerHTML=kinds.map(([k,g])=>row(k==="personalizada"?"Personalizada (com observação)":"Genérica",g)).join("")+demos.map(([n,g])=>row(n,g)).join("");
   let tip;
   if(T<10)tip=`Com 10 abordagens ou mais o funil começa a mostrar o que funciona. Até agora: ${T}.`;
   else{const best=rows.filter(([k,g])=>g.touched.length>=5).sort((a,b)=>b[1].rep.length/b[1].touched.length-a[1].rep.length/a[1].touched.length)[0];
     const [kp,kg]=kinds.map(x=>x[1]);tip=best?`Melhor nicho até agora: ${best[0]}, com ${pct(best[1].rep.length,best[1].touched.length)} de resposta. Concentre a próxima lista nele.`:"Abordar pelo menos 5 empresas do mesmo nicho mostra qual responde melhor.";
+    const [dc,ds]=demos.map(x=>x[1]);
+    if(dc.touched.length>=5&&ds.touched.length>=5)tip+=` Com prévia do site: ${pct(dc.rep.length,dc.touched.length)} de resposta, contra ${pct(ds.rep.length,ds.touched.length)} sem prévia.`;
+    else if(dc.touched.length<5)tip+=` Mande prévia para pelo menos 5 empresas para comparar com quem recebeu só mensagem.`;
     if(kp.touched.length>=5&&kg.touched.length>=5)tip+=` Mensagens personalizadas: ${pct(kp.rep.length,kp.touched.length)} de resposta, contra ${pct(kg.rep.length,kg.touched.length)} das genéricas.`}
   $("funnelTip").textContent=tip;
 }
@@ -322,6 +330,7 @@ function curOffer(){return S.offers.find(o=>o.id===$("prOff").value)||S.offers[0
 function propNum(){return new Date().getFullYear()+"-"+String(S.proposals.length+1).padStart(3,"0")}
 function renderDoc(){
   const o=curOffer(),pr=S.profile,cli=$("prCli").value.trim(),val=+$("prVal").value||(o&&o.preco)||0,dias=+$("prDias").value||7;
+  const cliLead=cli?S.pipeline.find(x=>x.nome.toLowerCase()===cli.toLowerCase()):null,demoLink=cliLead?demoOf(cliLead):"";
   if(!o){$("propDoc").innerHTML=`<p>Crie uma oferta para gerar a proposta.</p>`;return}
   const until=new Date();until.setDate(until.getDate()+dias);
   const dr=S.propDraft&&S.propDraft.offerId===o.id&&S.propDraft.cli===cli?S.propDraft:null;
@@ -333,6 +342,7 @@ function renderDoc(){
    ${lines.length?`<h3>O que está incluso</h3><ul>${lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
    <div class="pd-grid"><div><span>Prazo</span><b>${o.prazo||"—"} dias úteis</b><small>a partir da aprovação</small></div><div><span>Investimento</span><b>${brl(val)}</b><small>${esc($("prPag").value)}</small></div>${o.mensal?`<div><span>Manutenção (opcional)</span><b>${brl(o.mensal)}/mês</b><small>hospedagem, suporte e pequenas melhorias</small></div>`:""}</div>
    ${$("prExtra").value.trim()?`<h3>Observações</h3><p>${esc($("prExtra").value.trim()).replace(/\n/g,"<br>")}</p>`:""}
+   ${demoLink?`<h3>Prévia do site</h3><p>Veja como pode ficar: <a href="${esc(demoLink)}">${esc(demoLink)}</a></p>`:""}
    <h3>Próximo passo</h3><p>Para aprovar, é só responder "aprovado" no WhatsApp. Começo em até 2 dias úteis depois da aprovação.</p>
    <p class="pd-valid">Proposta válida até ${until.toLocaleDateString("pt-BR")}.</p>
    <div class="pd-foot">${esc(pr.nome||"Seu nome")}${pr.whats?" · WhatsApp "+esc(pr.whats):""}${pr.insta?" · "+esc(pr.insta):""}</div>`;
@@ -430,7 +440,7 @@ $("timerGo").onclick=()=>{
 /* ---------- API usada pelo módulo Radar (radar.js) ---------- */
 window.DevPath={
   get state(){return S},get sb(){return sb},get session(){return session},
-  changed,save,toast,show,esc,brl,fmtD,today,addDays,uid,iso,PH,igUrl,newLead,touch,logEv,firstMsg,fuMsg,waLink,copyText,me,
+  changed,save,toast,show,esc,demoOf,brl,fmtD,today,addDays,uid,iso,PH,igUrl,newLead,touch,logEv,firstMsg,fuMsg,waLink,copyText,me,
   STAGES,STAGE_NAME,onRender:f=>hooks.push(f),openLead:null,
   renderDoc:()=>renderDoc(),
 };
