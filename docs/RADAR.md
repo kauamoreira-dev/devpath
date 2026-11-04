@@ -33,7 +33,7 @@ Edge Function "radar" (Supabase, Deno)        ← chaves ficam só aqui
    └─ IA: Claude via SDK oficial (ai.ts + prompts.ts)
 ```
 
-- Os leads salvos entram no mesmo funil de **Clientes e vagas**: aparecem na fila de abordagem, nos follow-ups, no funil e nas propostas. Ficam no documento de cada usuário em `devpath_state`, protegido por RLS (cada um só vê os próprios dados).
+- Os leads salvos entram no mesmo funil de **Clientes e vagas**: aparecem na fila de abordagem, nos follow-ups, no funil e nas propostas. Ficam só no navegador do usuário (com backup em arquivo na aba Hoje). Nada dos leads vai para o banco; a conta serve só para autenticar as chamadas ao Radar.
 - Duplicatas são evitadas pelo `place_id` do Google. Para leads antigos sem `place_id`, a checagem usa nome e telefone.
 - O WhatsApp abre por um link `wa.me` só quando o usuário clica, com a mensagem para revisar. Nada é enviado automaticamente e não existe disparo em massa.
 

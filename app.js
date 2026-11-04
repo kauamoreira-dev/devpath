@@ -54,7 +54,7 @@ const OFFERS0=()=>[
  {id:"o1",nome:"Site com agendamento online",desc:"Site rápido e bonito para o seu negócio, com agendamento online ligado ao WhatsApp, para o cliente marcar sozinho a qualquer hora.",inclui:"Site de até 5 seções, feito para celular\nAgendamento online com confirmação no WhatsApp\nDomínio e hospedagem configurados\nTreinamento de 30 minutos",prazo:15,preco:1200,mensal:200},
  {id:"o2",nome:"Automação com IA",desc:"Automatizo uma tarefa repetitiva do seu negócio usando IA: atendimento no WhatsApp, planilhas ou relatórios.",inclui:"Diagnóstico de como funciona hoje\nAutomação configurada e testada\nManual simples de uso\n30 dias de ajustes",prazo:10,preco:1500,mensal:300}];
 const PROFILE0=()=>({nome:"",cidade:"",whats:"",insta:"",headline:"",slug:"",caseProb:"",caseSol:"",caseRes:"",published:false});
-const DEFAULT=()=>({v:4,propDraft:null,profile:PROFILE0(),offers:OFFERS0(),proposals:[],roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
+const DEFAULT=()=>({v:5,lastBackup:"",propDraft:null,profile:PROFILE0(),offers:OFFERS0(),proposals:[],roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
 
 let S=DEFAULT(); let sb=null, session=null, localMode=false; let saving=false, dirty=false, saveT=null;
 const $=id=>document.getElementById(id);
@@ -71,16 +71,11 @@ function sync(state,txt){$("syncDot").className="dot "+state;$("syncTxt").textCo
 /* ---------- persistence ---------- */
 function merge(d){const b=DEFAULT();for(const k in b){if(d&&d[k]!==undefined)b[k]=d[k]}b.goal=Object.assign(DEFAULT().goal,b.goal||{});b.profile=Object.assign(PROFILE0(),b.profile||{});if(!Array.isArray(b.offers))b.offers=OFFERS0();return b}
 function save(){dirty=true;clearTimeout(saveT);saveT=setTimeout(flush,700)}
-async function flush(){
-  try{localStorage.setItem("devpath",JSON.stringify(S))}catch(e){}
-  if(!sb||!session){dirty=false;sync("","Salvo neste navegador");return}
-  if(saving||!dirty)return;
-  saving=true;dirty=false;sync("busy","Salvando…");
-  const {error}=await sb.from("devpath_state").upsert({user_id:session.user.id,data:S,updated_at:new Date().toISOString()});
-  saving=false;
-  if(error){dirty=true;sync("err","Erro ao salvar. Tentando de novo…");setTimeout(flush,4000);return}
-  sync("ok","Salvo na nuvem");
-  if(dirty)flush();
+// Os dados ficam só neste navegador. A conta serve apenas para liberar o Radar (busca no servidor).
+function flush(){
+  dirty=false;
+  try{localStorage.setItem("devpath",JSON.stringify(S));sync("ok","Salvo neste navegador")}
+  catch(e){sync("err","Não foi possível salvar neste navegador")}
 }
 function changed(){save();render()}
 
@@ -98,7 +93,7 @@ function streak(){const m=studyByDay();let n=0;const d=new Date();if(!m[iso(d)])
 
 /* ---------- render ---------- */
 const hooks=[];
-function render(){hooks.forEach(f=>{try{f()}catch(e){console.error(e)}});renderKpis();renderToday();renderNext();renderQueue();renderFups();renderFunnel();renderProps();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
+function render(){renderBackup();hooks.forEach(f=>{try{f()}catch(e){console.error(e)}});renderKpis();renderToday();renderNext();renderQueue();renderFups();renderFunnel();renderProps();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
 function renderAbord(){
   const t=today(),n=S.outreach[t]||0,g=S.goal.outreachDay;
   $("oDate").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
@@ -366,6 +361,21 @@ $("pfPublish").onclick=async()=>{const pr=S.profile;$("pfMsg").textContent="";
   if(error){$("pfMsg").textContent=error.code==="23505"?"Esse endereço já é de outra pessoa. Escolha outro.":"Não foi possível publicar: "+error.message;return}
   pr.slug=slug;pr.published=true;changed();$("pfMsg").textContent="Página no ar. Sempre que mudar algo, publique de novo.";};
 
+/* ---------- backup (os dados ficam só neste navegador) ---------- */
+$("bkExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:"devpath",versao:S.v,exportadoEm:new Date().toISOString(),dados:S},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="devpath-backup-"+today()+".json";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);S.lastBackup=today();save();renderBackup();toast("Backup baixado. Guarde o arquivo em lugar seguro.")};
+$("bkImport").onchange=async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  try{
+    const obj=JSON.parse(await f.text());const d=obj&&obj.app==="devpath"?obj.dados:obj;
+    if(!d||typeof d!=="object"||!Array.isArray(d.pipeline))throw new Error();
+    if(!$("bkImport").dataset.armed){$("bkImport").dataset.armed=1;$("bkMsg").textContent="Importar vai substituir os dados deste navegador. Escolha o arquivo de novo para confirmar.";return}
+    delete $("bkImport").dataset.armed;S=merge(d);changed();$("bkMsg").textContent="Backup importado.";toast("Backup importado")
+  }catch(err){$("bkMsg").textContent="Esse arquivo não é um backup válido do DevPath."}};
+function renderBackup(){const d=S.lastBackup;$("bkLast").textContent=d?"Último backup: "+fmtD(d)+"/"+d.slice(0,4):"Você ainda não fez backup.";$("bkLast").className="note"+(!d||daysTo(d)<-14?" warn-txt":"")}
+
 /* ---------- app instalável ---------- */
 let installEvt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;$("installBtn").hidden=false});
@@ -435,14 +445,23 @@ function authUI(){
   $("auth").hidden=!sb||!!session||localMode;
   $("acct").hidden=!sb||(!session&&!localMode);
   $("acct").textContent=session?"Sair":"Entrar";
-  if(!session&&sb)sync("","Salvo neste navegador");
+  sync("ok","Salvo neste navegador");
 }
+// Migração única: se ainda existir uma cópia na nuvem, traz para o navegador e apaga do banco.
+function sizeOf(d){return d?(d.pipeline||[]).length+(d.study||[]).length+(d.income||[]).length+(d.week||[]).length+Object.keys(d.roadmap||{}).length:0}
 async function loadRemote(){
-  sync("busy","Carregando…");
+  let local=null;try{local=JSON.parse(localStorage.getItem("devpath")||"null")}catch(e){}
   const {data,error}=await sb.from("devpath_state").select("data").eq("user_id",session.user.id).maybeSingle();
-  if(error){loadLocal();sync("err","Sem conexão: usando a cópia deste aparelho");return}
-  if(data&&data.data){S=merge(data.data);render();sync("ok","Salvo na nuvem")}
-  else{loadLocal();render();dirty=true;flush()}
+  if(error||!data||!data.data){loadLocal();render();return}
+  // Fica com a cópia que tem mais conteúdo, para não perder nada.
+  const fromCloud=sizeOf(data.data)>sizeOf(local);
+  S=merge(fromCloud?data.data:local);
+  try{localStorage.setItem("devpath",JSON.stringify(S))}catch(e){sync("err","Não foi possível salvar neste navegador");render();return}
+  const del=await sb.from("devpath_state").delete().eq("user_id",session.user.id);
+  render();
+  if(del.error){sync("err","Copiado para o navegador, mas a cópia na nuvem não foi apagada");return}
+  sync("ok","Salvo neste navegador");
+  toast("Seus dados agora ficam só neste navegador. A cópia na nuvem foi apagada.");
 }
 if(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase){
   sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey);
@@ -452,7 +471,7 @@ authUI();
 let signup=false;
 $("aToggle").onclick=()=>{signup=!signup;$("aTitle").textContent=signup?"Criar conta":"Entrar";$("aGo").textContent=signup?"Criar conta":"Entrar";$("aToggle").textContent=signup?"Já tenho conta":"Criar conta";$("aPass").autocomplete=signup?"new-password":"current-password";$("aMsg").textContent=""};
 $("aLocal").onclick=()=>{localMode=true;loadLocal();authUI()};
-$("acct").onclick=async()=>{if(session){await sb.auth.signOut();S=DEFAULT();render();toast("Você saiu")}else{localMode=false;authUI()}};
+$("acct").onclick=async()=>{if(session){await sb.auth.signOut();toast("Você saiu. Seus dados continuam neste navegador.")}else{localMode=false;authUI()}};
 const ERR={"Invalid login credentials":"E-mail ou senha incorretos.","Email not confirmed":"Confirme seu e-mail primeiro: abra o link que enviamos.","User already registered":"Esse e-mail já tem conta. Use Entrar."};
 $("authForm").onsubmit=async e=>{e.preventDefault();$("aGo").disabled=true;$("aMsg").textContent=signup?"Criando conta…":"Entrando…";
   const email=$("aEmail").value.trim(),password=$("aPass").value;

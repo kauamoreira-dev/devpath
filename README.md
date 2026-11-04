@@ -13,7 +13,7 @@ Painel de carreira para dev freelancer sair do zero aos R$ 5 mil por mês.
 - **Roadmap em 5 níveis**, prioridades do dia, timer de foco, quadro da semana e controle de renda com meta.
 - **App instalável** no celular (PWA), funciona offline.
 
-Site estático (HTML, CSS e JavaScript puro), sem build. Login e sincronização com [Supabase](https://supabase.com).
+Site estático (HTML, CSS e JavaScript puro), sem build. Os dados ficam só no navegador (com backup em arquivo); a conta no [Supabase](https://supabase.com) serve apenas para liberar o Radar.
 
 ## Testes
 
@@ -29,7 +29,7 @@ npx serve .
 
 Sem configurar o Supabase, o DevPath funciona com os dados salvos no navegador.
 
-## Ativar login e dados na nuvem
+## Ativar login (para o Radar)
 
 1. Crie um projeto gratuito no Supabase.
 2. Em **SQL Editor**, rode o arquivo `supabase/schema.sql` (cria as tabelas `devpath_state` e `devpath_public` com RLS).

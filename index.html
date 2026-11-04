@@ -117,6 +117,16 @@
       <div class="row" style="justify-content:space-between"><h2>Tarefa do roadmap agora</h2><button class="btn ghost small" data-goto="roadmap" id="gotoRoad">Abrir roadmap</button></div>
       <div id="nextRoad"></div>
     </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h2>Seus dados</h2><span id="bkLast" class="note"></span></div>
+      <p class="note">Tudo fica só neste navegador. Se limpar o navegador ou trocar de aparelho, os dados não vão junto: faça backup toda semana e importe no outro aparelho quando precisar.</p>
+      <div class="row">
+        <button class="btn small" id="bkExport" type="button">Exportar backup</button>
+        <label class="btn ghost small" for="bkImport" style="cursor:pointer">Importar backup<input type="file" id="bkImport" accept="application/json,.json" hidden></label>
+        <span class="note" id="bkMsg" role="status"></span>
+      </div>
+    </div>
   </section>
 
   <!-- RADAR -->
@@ -380,7 +390,7 @@
   <div class="card auth-card">
     <p class="label">// DevPath</p>
     <h1 id="aTitle">Entrar</h1>
-    <p class="note">Com conta, seus dados ficam salvos na nuvem e aparecem igual no celular e no computador.</p>
+    <p class="note">A conta serve para liberar o Radar de clientes. Seus dados ficam só neste navegador, nada vai para a nuvem.</p>
     <form id="authForm" class="grid" style="gap:10px">
       <input type="email" id="aEmail" placeholder="E-mail" required autocomplete="email">
       <input type="password" id="aPass" placeholder="Senha (mínimo 6 caracteres)" minlength="6" required autocomplete="current-password">
