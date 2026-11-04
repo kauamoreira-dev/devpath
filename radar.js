@@ -13,6 +13,12 @@
     indisponivel: ["Fechado no Google", "opp-off"],
   };
   const CACHE_DAYS = 30;
+  const SOURCE = { google: "Google", osm: "OpenStreetMap" };
+  const ATTRIB = {
+    google: "Dados de empresas: Google Maps.",
+    osm: "Dados de empresas: © colaboradores do OpenStreetMap, licença ODbL. É uma base gratuita e aberta: nem toda empresa tem telefone ou site cadastrado.",
+  };
+  const srcOf = (x) => (x && x.dataSource) || (x && x.source && x.source !== "radar" ? x.source : "") || (x && x.placeId && String(x.placeId).startsWith("osm-") ? "osm" : "google");
   const PREFS = "devpath-radar";
 
   let results = [];
@@ -64,25 +70,33 @@
       S.pipeline.find((p) => !p.placeId && p.nome.trim().toLowerCase() === place.name.trim().toLowerCase() && digits(p.whats) && digits(p.whats).slice(-8) === digits(place.phone).slice(-8)) || null;
   }
 
-  function autoObs(op) {
+  function autoObs(op, source) {
+    if (source !== "google") return ""; // no mapa aberto a falta de site é comum e não diz muito: não vira argumento
     if (op.website === "none") return "o perfil de vocês no Google não mostra um site cadastrado";
     if (op.website === "social") return `o link do perfil de vocês no Google leva para ${op.websiteDomain}`;
     return "";
   }
 
+  const searchLinks = (name, city) => {
+    const q = encodeURIComponent(`${name} ${city || ""}`.trim());
+    return `<a class="btn small ghost" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">Procurar contato no Google</a><a class="btn small ghost" href="https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(name)}" target="_blank" rel="noopener">Procurar no Instagram</a>`;
+  };
+
   function saveLead(r) {
     const existing = findLead(r.place);
     if (existing) return existing;
     const pl = r.place, op = r.opportunity;
-    const p = D.newLead({ nome: pl.name, nicho: pl.category, whats: pl.phone, obs: autoObs(op) });
+    const p = D.newLead({ nome: pl.name, nicho: pl.category, whats: pl.phone, obs: autoObs(op, r.source || "google") });
     Object.assign(p, {
       source: "radar",
       placeId: pl.id,
       address: pl.address,
+      source: "radar",
+      dataSource: r.source || "google",
       place: { name: pl.name, category: pl.category, address: pl.address, phone: pl.phone, website: pl.website, mapsUrl: pl.mapsUrl, rating: pl.rating, ratingCount: pl.ratingCount, status: pl.status, cachedAt: D.today() },
       opp: { score: op.score, level: op.level, website: op.website, websiteDomain: op.websiteDomain, mobile: op.mobile, signals: op.signals.map((s) => s.label) },
     });
-    D.logEv(p, "origem", "Encontrado pelo Radar");
+    D.logEv(p, "origem", "Encontrado pelo Radar (" + (SOURCE[r.source] || "Google") + ")");
     D.state.pipeline.push(p);
     D.changed();
     return p;
@@ -102,10 +116,11 @@
     let html = "";
     if (!D.sb) html = `<p><b>O Radar precisa da conta na nuvem.</b> Configure o Supabase em <span class="mono">config.js</span> para usar a busca.</p>`;
     else if (!D.session) html = `<p><b>Entre na sua conta para usar o Radar.</b> A busca roda no servidor e conta no seu limite diário.</p><button class="btn small" type="button" id="rzLogin">Entrar</button>`;
-    else if (status && !status.placesConfigured) html = `<p><b>A busca ainda não está configurada.</b> Falta adicionar a chave do Google Places no Supabase. O passo a passo está em <span class="mono">docs/RADAR.md</span>.</p>`;
+
     g.innerHTML = html;
     g.hidden = !html;
-    const blocked = !D.sb || !D.session || (status && !status.placesConfigured);
+    const blocked = !D.sb || !D.session;
+    $("rzAttribTxt").textContent = ATTRIB[(status && status.source) || "osm"];
     $("rzGo").disabled = !!blocked || busy;
     const login = $("rzLogin");
     if (login) login.onclick = () => { const a = $("acct"); if (a && !a.hidden) a.click(); else D.toast("Use o botão Entrar no topo da página"); };
@@ -150,6 +165,7 @@
 
   function card(r) {
     const pl = r.place, op = r.opportunity, [label, cls] = LEVEL[op.level] || LEVEL.baixa;
+    const src = r.source || "google";
     const lead = findLead(pl);
     const site = safeUrl(pl.website)
       ? `<a href="${esc(safeUrl(pl.website))}" target="_blank" rel="noopener nofollow">${esc(op.websiteDomain || domainOf(pl.website))}</a>${op.website === "social" ? ' <span class="tag">rede social</span>' : ""}`
@@ -164,18 +180,19 @@
       <dl class="rz-facts">
         <div><dt>Telefone</dt><dd>${phone}</dd></div>
         <div><dt>Site</dt><dd>${site}</dd></div>
-        <div><dt>Avaliações</dt><dd>${reviews}</dd></div>
+        ${src === "google" ? `<div><dt>Avaliações</dt><dd>${reviews}</dd></div>` : ""}
       </dl>
       <details class="rz-why"><summary>Por que essa classificação</summary>
         <ul>${op.signals.map((s) => `<li><span>${esc(s.label)}</span><b>${s.points ? "+" + s.points : "·"}</b></li>`).join("")}</ul>
-        <p class="note">Pontuação ${op.score}. Alta a partir de 55 pontos, média a partir de 30. Só usamos dados do Google, que podem estar desatualizados.</p>
+        <p class="note">Pontuação ${op.score}. Alta a partir de 55 pontos, média a partir de 30. Dados do ${SOURCE[src]}, que podem estar incompletos ou desatualizados.</p>
       </details>
       <div class="rz-actions">
         ${lead
           ? `<button class="btn small ghost" data-open="${lead.id}">Ver lead · ${esc(D.STAGE_NAME[lead.status] || lead.status)}</button>`
           : `<button class="btn small ${op.level === "indisponivel" ? "ghost" : ""}" data-save="${esc(pl.id)}">Salvar lead</button>`}
         <button class="btn small ghost" data-msg="${esc(pl.id)}">Mensagem</button>
-        ${safeUrl(pl.mapsUrl) ? `<a class="btn small ghost" href="${esc(safeUrl(pl.mapsUrl))}" target="_blank" rel="noopener">Ver no Maps</a>` : ""}
+        ${safeUrl(pl.mapsUrl) ? `<a class="btn small ghost" href="${esc(safeUrl(pl.mapsUrl))}" target="_blank" rel="noopener">Ver no mapa</a>` : ""}
+        ${pl.phone ? "" : searchLinks(pl.name, lastInput && lastInput.city)}
       </div>
     </article>`;
   }
@@ -233,7 +250,9 @@
       lastInput = input;
       if (status) { status.usage = data.usage; usageChip(); }
       const hidden = data.total - data.results.length;
-      $("rzSummary").textContent = `${results.length} ${results.length === 1 ? "empresa" : "empresas"} para “${data.query}”${hidden > 0 ? ` · ${hidden} ${hidden === 1 ? "ocultada" : "ocultadas"} pelos filtros nesta página` : ""}`;
+      if (status && data.source) status.source = data.source;
+      $("rzAttribTxt").textContent = ATTRIB[data.source || "osm"];
+      $("rzSummary").textContent = `${results.length} ${results.length === 1 ? "empresa" : "empresas"} para “${data.query}” · fonte: ${SOURCE[data.source] || "Google"}${hidden > 0 ? ` · ${hidden} ${hidden === 1 ? "ocultada" : "ocultadas"} pelos filtros nesta página` : ""}`;
       busy = false;
       renderResults();
     } catch (e) {
@@ -292,8 +311,43 @@
 
   const aiReady = () => !!(status && status.aiConfigured);
 
+  /* ---------- rascunhos gratuitos (sem IA): só regras sobre os dados da ficha ---------- */
+  function localAnalyze(p) {
+    const src = SOURCE[srcOf(p)] || "mapa";
+    const w = p.opp ? p.opp.website : "unknown";
+    const fatos = p.opp && p.opp.signals.length ? [...p.opp.signals] : ["Lead adicionado à mão, sem dados de mapa"];
+    const hip = [];
+    if (w === "none") hip.push({ texto: "Pode não ter site próprio, ou o site só não está cadastrado no " + src, como_confirmar: "Procurar o nome no Google e no Instagram antes do contato" });
+    if (w === "social") hip.push({ texto: "Pode depender só da rede social para atender e vender", como_confirmar: "Ver se o perfil tem link de agendamento, catálogo ou cardápio" });
+    hip.push({ texto: "Pode receber pedidos ou agendamentos de forma manual, por mensagem", como_confirmar: "Perguntar como funciona o atendimento hoje" });
+    const servicos = D.state.offers.filter((o) => o.nome).map((o) => {
+      const n = o.nome.toLowerCase();
+      const motivo = /site|landing|agend/.test(n)
+        ? (w === "own" ? "Já existe site cadastrado: só faz sentido se ele não atende bem (confirmar)" : "Ajuda clientes a encontrar a empresa e marcar sem depender de mensagem")
+        : /ia|autom|whats|planilh/.test(n) ? "Faz sentido se a equipe gasta tempo com mensagens ou tarefas repetidas (confirmar na conversa)" : "Avaliar na conversa";
+      return { oferta: o.nome, motivo };
+    });
+    return {
+      resumo: `${p.nome}${p.nicho ? ` (${p.nicho})` : ""}: ${w === "none" ? `site não informado no ${src}` : w === "social" ? "o link cadastrado é de rede social" : w === "own" ? "tem site cadastrado" : "sem dados de site"}${p.whats ? ", com telefone público" : ", sem telefone na fonte"}. Tudo abaixo é hipótese até você confirmar.`,
+      fatos, hipoteses: hip, servicos,
+      perguntas: ["Como os clientes chegam até vocês hoje?", "Como funciona o atendimento e os pedidos ou agendamentos?", "O que mais toma tempo da equipe no dia a dia?", "Vocês já tiveram site ou pensaram em ter?"],
+    };
+  }
+
+  function localProposal(p) {
+    const o = D.state.offers.find((x) => x.id === ($("ldOffer") && $("ldOffer").value)) || D.state.offers[0];
+    if (!o) throw Object.assign(new Error("Cadastre uma oferta na aba Propostas antes."), { code: "no_offer" });
+    return {
+      titulo: `${o.nome} para ${p.nome}`,
+      descricao: o.desc || "",
+      inclui: String(o.inclui || "").split(/\n/).map((s) => s.trim()).filter(Boolean),
+      observacoes: "Valores e prazos conforme a sua tabela de ofertas.",
+      confirmar_antes: ["Como a empresa atende e recebe pedidos ou agendamentos hoje", "Se já existe site, domínio ou perfil que deve ser aproveitado", "Quem vai fornecer textos, fotos e logotipo", "Forma de pagamento preferida"],
+    };
+  }
+
   function analysisHtml(a) {
-    if (!a) return '<p class="note">A IA lê só os dados acima e suas anotações, separa fatos de hipóteses e sugere qual oferta faz sentido.</p>';
+    if (!a) return '<p class="note">Usa só os dados acima e suas anotações, separa fatos de hipóteses e sugere qual oferta faz sentido.</p>';
     const d = a.data;
     const li = (arr) => (arr || []).map((x) => `<li>${esc(x)}</li>`).join("");
     return `<p>${esc(d.resumo)}</p>
@@ -301,16 +355,17 @@
       ${d.hipoteses && d.hipoteses.length ? `<h4>Hipóteses a confirmar</h4><ul>${d.hipoteses.map((h) => `<li>${esc(h.texto)}<br><span class="note">Como confirmar: ${esc(h.como_confirmar)}</span></li>`).join("")}</ul>` : ""}
       ${d.servicos && d.servicos.length ? `<h4>Serviços que fazem sentido</h4><ul>${d.servicos.map((s) => `<li><b>${esc(s.oferta)}</b>: ${esc(s.motivo)}</li>`).join("")}</ul>` : ""}
       ${d.perguntas && d.perguntas.length ? `<h4>Perguntas para a conversa</h4><ul>${li(d.perguntas)}</ul>` : ""}
-      <p class="note">Gerado em ${D.fmtD(a.at)}. Revise antes de usar.</p>`;
+      <p class="note">${a.local ? "Rascunho automático (sem IA), feito só com os dados da ficha." : "Gerado com IA"} em ${D.fmtD(a.at)}. Revise antes de usar.</p>`;
   }
 
   function proposalHtml(pr) {
-    if (!pr) return '<p class="note">A IA adapta uma das suas ofertas a essa empresa, sem inventar preço, e lista o que você precisa confirmar antes de enviar.</p>';
+    if (!pr) return '<p class="note">Monta uma proposta a partir da oferta escolhida acima, sem inventar preço, e lista o que você precisa confirmar antes de enviar.</p>';
     const d = pr.data;
     return `<p><b>${esc(d.titulo)}</b></p><p>${esc(d.descricao)}</p>
       ${d.inclui && d.inclui.length ? `<h4>Inclui</h4><ul>${d.inclui.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${d.observacoes ? `<p class="note">${esc(d.observacoes)}</p>` : ""}
       ${d.confirmar_antes && d.confirmar_antes.length ? `<h4>Confirme antes de enviar</h4><ul>${d.confirmar_antes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <p class="note">${pr.local ? "Rascunho automático (sem IA)" : "Gerado com IA"} em ${D.fmtD(pr.at)}.</p>
       <button class="btn small" id="ldUseProp">Usar na proposta</button>`;
   }
 
@@ -326,7 +381,7 @@
     const site = safeUrl(pl.website || "");
     const props = S.proposals.filter((x) => x.pid === p.id || x.cli === p.nome);
     const hist = [...(p.log || [])].reverse();
-    const aiOff = aiReady() ? "" : 'disabled title="A IA ainda não foi configurada"';
+    const ai = aiReady();
     $("leadBody").innerHTML = `
       <header class="dlg-head">
         <div style="min-width:0"><p class="label">${p.source === "radar" ? "Lead do Radar" : "Lead"}</p><h2 id="ldTitle">${esc(p.nome)}</h2>
@@ -345,10 +400,11 @@
             <dl class="rz-facts">
               <div><dt>Telefone</dt><dd>${p.whats ? `<span class="mono">${esc(p.whats)}</span>` : '<span class="muted">Não informado</span>'}</dd></div>
               <div><dt>Site</dt><dd>${site ? `<a href="${esc(site)}" target="_blank" rel="noopener nofollow">${esc(domainOf(site))}</a>` : p.placeId ? '<span class="muted">Site não informado</span>' : '<span class="muted">Sem dados</span>'}</dd></div>
-              ${safeUrl(pl.mapsUrl) ? `<div><dt>Google</dt><dd><a href="${esc(safeUrl(pl.mapsUrl))}" target="_blank" rel="noopener">Ver no Maps</a></dd></div>` : ""}
+              ${safeUrl(pl.mapsUrl) ? `<div><dt>Mapa</dt><dd><a href="${esc(safeUrl(pl.mapsUrl))}" target="_blank" rel="noopener">Ver no ${SOURCE[srcOf(p)]}</a></dd></div>` : ""}
               ${p.insta ? `<div><dt>Instagram</dt><dd><a href="${esc(safeUrl(D.igUrl(p.insta)))}" target="_blank" rel="noopener">${esc(p.insta)}</a></dd></div>` : ""}
             </dl>
-            ${p.placeId ? `<p class="note ${stale ? "warn-txt" : ""}">${stale ? `Os dados do Google têm ${age} dias. Atualize antes de usar.` : `Dados do Google de ${D.fmtD(pl.cachedAt)}.`} <button class="warn-link" id="ldRefresh">Atualizar dados</button></p>` : ""}
+            ${p.placeId ? `<p class="note ${stale ? "warn-txt" : ""}">${stale ? `Os dados do ${SOURCE[srcOf(p)]} têm ${age} dias. Atualize antes de usar.` : `Dados do ${SOURCE[srcOf(p)]} de ${D.fmtD(pl.cachedAt)}.`} <button class="warn-link" id="ldRefresh">Atualizar dados</button></p>` : ""}
+            ${!p.whats ? `<div class="row">${searchLinks(p.nome, cityOf(p.address))}</div>` : ""}
             ${p.opp && p.opp.signals && p.opp.signals.length ? `<ul class="ld-signals">${p.opp.signals.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
           </div>
           <div class="ld-block">
@@ -356,7 +412,7 @@
             <div class="row">
               <select id="ldCanal" aria-label="Canal"><option>WhatsApp</option><option>Instagram</option><option>E-mail</option></select>
               <select id="ldOffer" aria-label="Oferta">${S.offers.filter((o) => o.nome).map((o) => `<option value="${o.id}">${esc(o.nome)}</option>`).join("")}</select>
-              <button class="btn small ghost" id="ldAiMsg" ${aiOff}>Escrever com IA</button>
+              ${ai ? '<button class="btn small ghost" id="ldAiMsg">Escrever com IA</button>' : ""}
               <button class="btn small ghost" id="ldTpl">Usar modelo</button>
             </div>
             <textarea id="ldMsg" rows="6" aria-label="Mensagem">${esc(defaultMsg(p))}</textarea>
@@ -374,14 +430,14 @@
         </section>
         <aside class="dlg-side">
           <div class="ld-block">
-            <div class="row" style="justify-content:space-between"><h3>Análise com IA</h3><button class="btn small ghost" id="ldAnalyze" ${aiOff}>${p.ai && p.ai.analyze ? "Gerar de novo" : "Analisar"}</button></div>
+            <div class="row" style="justify-content:space-between"><h3>${ai ? "Análise com IA" : "Análise"}</h3><button class="btn small ghost" id="ldAnalyze">${p.ai && p.ai.analyze ? "Gerar de novo" : ai ? "Analisar com IA" : "Gerar análise"}</button></div>
             <div id="ldAnalysis" class="ld-ai">${analysisHtml(p.ai && p.ai.analyze)}</div>
           </div>
           <div class="ld-block">
-            <div class="row" style="justify-content:space-between"><h3>Rascunho de proposta</h3><button class="btn small ghost" id="ldPropAi" ${aiOff}>Gerar com IA</button></div>
+            <div class="row" style="justify-content:space-between"><h3>Rascunho de proposta</h3><button class="btn small ghost" id="ldPropAi">${ai ? "Gerar com IA" : "Gerar rascunho"}</button></div>
             <div id="ldProp" class="ld-ai">${proposalHtml(p.ai && p.ai.proposal)}</div>
           </div>
-          ${aiReady() ? "" : '<p class="note">A IA ainda não foi configurada. O resto da ficha funciona normalmente.</p>'}
+          ${ai ? "" : '<p class="note">Sem chave de IA: a análise e o rascunho são automáticos, feitos com regras sobre os dados da ficha, sem custo.</p>'}
           <div class="ld-block">
             <h3>Propostas</h3>
             ${props.length ? `<ul class="ld-list">${props.map((x) => `<li><span>${esc(x.offer)} · ${D.brl(x.valor)}</span><span class="note">${D.fmtD(x.date)}</span></li>`).join("")}</ul>` : '<p class="note">Nenhuma proposta enviada ainda.</p>'}
@@ -431,12 +487,22 @@
     };
     $("ldAnalyze").onclick = () => runAi(p, "analyze", $("ldAnalyze"), "ldAnalysis");
     $("ldPropAi").onclick = () => runAi(p, "proposal", $("ldPropAi"), "ldProp");
-    $("ldAiMsg").onclick = () => runAi(p, "message", $("ldAiMsg"));
+    if ($("ldAiMsg")) $("ldAiMsg").onclick = () => runAi(p, "message", $("ldAiMsg"));
     if ($("ldUseProp")) $("ldUseProp").onclick = () => useProposal(p);
     if (focus === "msg") setTimeout(() => msg.focus(), 50);
   }
 
   async function runAi(p, task, btn, targetId) {
+    if (!aiReady() && task !== "message") {
+      try {
+        p.ai = p.ai || {};
+        p.ai[task] = { at: D.today(), local: true, data: task === "analyze" ? localAnalyze(p) : localProposal(p), offerId: $("ldOffer") ? $("ldOffer").value : "" };
+        D.logEv(p, "rascunho", task === "analyze" ? "Análise automática (sem IA)" : "Rascunho de proposta automático (sem IA)");
+        D.save();
+        renderLead();
+      } catch (e) { D.toast(e.message); }
+      return;
+    }
     const old = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Gerando…";
@@ -491,6 +557,7 @@
       const oldPhone = p.place && p.place.phone;
       if (!p.whats || p.whats === oldPhone) p.whats = pl.phone;
       p.address = pl.address;
+      p.dataSource = data.source || srcOf(p);
       p.place = { name: pl.name, category: pl.category, address: pl.address, phone: pl.phone, website: pl.website, mapsUrl: pl.mapsUrl, rating: pl.rating, ratingCount: pl.ratingCount, status: pl.status, cachedAt: D.today() };
       p.opp = { score: op.score, level: op.level, website: op.website, websiteDomain: op.websiteDomain, mobile: op.mobile, signals: op.signals.map((s) => s.label) };
       D.logEv(p, "dados", "Dados do Google atualizados");

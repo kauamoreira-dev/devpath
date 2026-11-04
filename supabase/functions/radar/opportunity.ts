@@ -67,10 +67,14 @@ export const LEVEL_LABEL: Record<Level, string> = {
   alta: "Oportunidade alta",
   media: "Oportunidade média",
   baixa: "Oportunidade baixa",
-  indisponivel: "Fechado no Google",
+  indisponivel: "Fechado",
 };
 
-export function classify(p: PlaceLite): Opportunity {
+export type Source = "google" | "osm";
+export const SOURCE_NAME: Record<Source, string> = { google: "Google", osm: "OpenStreetMap" };
+
+export function classify(p: PlaceLite, source: Source = "google"): Opportunity {
+  const src = SOURCE_NAME[source];
   const signals: Signal[] = [];
   const website = websiteKind(p.website);
   const websiteDomain = domainOf(p.website);
@@ -80,21 +84,24 @@ export function classify(p: PlaceLite): Opportunity {
   if (p.status === "CLOSED_PERMANENTLY" || p.status === "CLOSED_TEMPORARILY") {
     signals.push({
       key: "closed",
-      label: p.status === "CLOSED_PERMANENTLY" ? "Marcado como fechado permanentemente no Google" : "Marcado como fechado temporariamente no Google",
+      label: p.status === "CLOSED_PERMANENTLY" ? `Marcado como fechado permanentemente no ${src}` : `Marcado como fechado temporariamente no ${src}`,
       points: 0,
     });
     return { score: 0, level: "indisponivel", website, websiteDomain, mobile, signals };
   }
 
-  if (website === "none") signals.push({ key: "no_site", label: "Site não informado no Google", points: 45 });
+  if (website === "none") signals.push({ key: "no_site", label: `Site não informado no ${src}`, points: 45 });
   else if (website === "social") signals.push({ key: "social_site", label: `O link cadastrado é rede social ou agregador (${websiteDomain})`, points: 30 });
   else signals.push({ key: "own_site", label: `Site cadastrado: ${websiteDomain}`, points: 0 });
 
   if (phone) signals.push({ key: "phone", label: mobile ? "Telefone comercial público (celular)" : "Telefone comercial público", points: 15 });
-  else signals.push({ key: "no_phone", label: "Telefone não informado no Google", points: 0 });
+  else signals.push({ key: "no_phone", label: `Telefone não informado no ${src}`, points: 0 });
 
-  if (p.ratingCount === null || p.ratingCount === 0) signals.push({ key: "no_reviews", label: "Sem avaliações no Google", points: 10 });
-  else if (p.ratingCount < 15) signals.push({ key: "few_reviews", label: `Poucas avaliações no Google (${p.ratingCount})`, points: 10 });
+  // Avaliações só existem no Google; no OpenStreetMap esse sinal não se aplica.
+  if (source === "google") {
+    if (p.ratingCount === null || p.ratingCount === 0) signals.push({ key: "no_reviews", label: "Sem avaliações no Google", points: 10 });
+    else if (p.ratingCount < 15) signals.push({ key: "few_reviews", label: `Poucas avaliações no Google (${p.ratingCount})`, points: 10 });
+  }
 
   const score = signals.reduce((a, s) => a + s.points, 0);
   const level: Level = score >= 55 ? "alta" : score >= 30 ? "media" : "baixa";

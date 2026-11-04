@@ -2,8 +2,9 @@
 // Todas as chaves ficam aqui no servidor. O navegador só manda o token de login do usuário.
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { parseAi, parsePlaceId, parseSearch, buildQuery, ValidationError } from "./validate.ts";
-import { classify, passesFilters } from "./opportunity.ts";
+import { classify, passesFilters, type Source } from "./opportunity.ts";
 import { getPlace, searchText, UpstreamError } from "./places.ts";
+import { osmPlace, osmSearch } from "./osm.ts";
 import { consume, LimitError, refund, usageToday } from "./limits.ts";
 import { AiError, getProvider } from "./ai.ts";
 import { buildUserPrompt, SCHEMAS, SYSTEM } from "./prompts.ts";
@@ -51,36 +52,40 @@ Deno.serve(async (req) => {
   }
 
   const placesKey = Deno.env.get("GOOGLE_PLACES_API_KEY") ?? "";
+  // Com chave do Google, usa o Google Places (pago). Sem chave, usa o OpenStreetMap (gratuito).
+  const source: Source = placesKey ? "google" : "osm";
   let consumed: "search" | "details" | "ai" | null = null;
 
   try {
     switch (body.action) {
       case "status": {
-        return json({ placesConfigured: !!placesKey, aiConfigured: !!getProvider(), usage: await usageToday(admin, userId) }, 200, headers);
+        return json({ placesConfigured: true, source, aiConfigured: !!getProvider(), usage: await usageToday(admin, userId) }, 200, headers);
       }
 
       case "search": {
         const input = parseSearch(body);
-        if (!placesKey) return json({ error: "A busca ainda não foi configurada: falta a chave do Google Places.", code: "places_not_configured" }, 503, headers);
         await consume(admin, userId, "search");
         consumed = "search";
         const query = buildQuery(input);
-        const { places, nextPageToken } = await searchText(placesKey, query, input.pageToken);
+        const { places, nextPageToken } = source === "google"
+          ? await searchText(placesKey, query, input.pageToken)
+          : { places: await osmSearch(input), nextPageToken: "" };
         const results = places
-          .map((p) => ({ place: p, opportunity: classify(p) }))
+          .map((p) => ({ place: p, opportunity: classify(p, source), source }))
           .filter((r) => passesFilters(r.opportunity, r.place, input.site, input.phone));
         consumed = null;
-        return json({ query, results, total: places.length, nextPageToken, usage: await usageToday(admin, userId) }, 200, headers);
+        return json({ query, source, results, total: places.length, nextPageToken, usage: await usageToday(admin, userId) }, 200, headers);
       }
 
       case "place": {
         const id = parsePlaceId(body.placeId);
-        if (!placesKey) return json({ error: "Falta configurar a chave do Google Places.", code: "places_not_configured" }, 503, headers);
+        const placeSource: Source = id.startsWith("osm-") ? "osm" : "google";
+        if (placeSource === "google" && !placesKey) return json({ error: "Esse lead veio do Google e a chave do Google Places não está configurada.", code: "places_not_configured" }, 503, headers);
         await consume(admin, userId, "details");
         consumed = "details";
-        const place = await getPlace(placesKey, id);
+        const place = placeSource === "osm" ? await osmPlace(id) : await getPlace(placesKey, id);
         consumed = null;
-        return json({ place, opportunity: classify(place) }, 200, headers);
+        return json({ place, source: placeSource, opportunity: classify(place, placeSource) }, 200, headers);
       }
 
       case "ai": {

@@ -1,0 +1,9 @@
+{
+  "_fonte": "Resposta real do Overpass (OpenStreetMap) para restaurantes em Santarém-PA, consultada em 04/11/2026. Dados © colaboradores do OpenStreetMap, licença ODbL.",
+  "elements": [
+    {"id":11384216431,"type":"node","tags":{"name":"Churrascaria Boi Gordo","phone":"+55 93 99186 4540","amenity":"restaurant","cuisine":"steak_house","website":"https://www.instagram.com/churrascariaboigordostm/","addr:city":"Santarém","addr:street":"Avenida Muiraquitã","addr:suburb":"Aeroporto Velho","addr:housenumber":"402"}},
+    {"id":706958342,"type":"way","tags":{"name":"Mocorongo Açaí - Orla","phone":"+55 93 99225 6789","amenity":"restaurant","website":"https://instagram.com/mocorongoacai","addr:city":"Santarém","addr:street":"Avenida Rui Barbosa"}},
+    {"id":12378635550,"type":"node","tags":{"name":"11:11 Espeto Burguer","amenity":"restaurant"}},
+    {"id":4955527021,"type":"node","tags":{"name":"Aky Lanche","amenity":"restaurant","addr:street":"Avenida Jasmin"}}
+  ]
+}

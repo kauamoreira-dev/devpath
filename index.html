@@ -125,7 +125,7 @@
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
           <h2>Radar de clientes</h2>
-          <p class="note">Encontre empresas reais no Google por cidade e segmento, veja os sinais de oportunidade e salve como lead.</p>
+          <p class="note">Encontre empresas reais por cidade e segmento, veja os sinais de oportunidade e salve como lead. Sem custo: usa o OpenStreetMap.</p>
         </div>
         <span class="chip" id="rzUsage" title="Buscas usadas hoje">—</span>
       </div>
@@ -149,7 +149,7 @@
     </div>
     <div id="rzResults" class="rz-grid" aria-live="polite" aria-busy="false"></div>
     <div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" id="rzMore" hidden>Carregar mais resultados</button></div>
-    <p class="note rz-attrib">Dados de empresas: Google Maps. “Site não informado” quer dizer que o Google não tem site cadastrado para a empresa, não que ela não tenha um. Use os contatos só para abordagem comercial individual, sem disparos em massa, e respeite quem pedir para não ser contatado.</p>
+    <p class="note rz-attrib"><span id="rzAttribTxt">Dados de empresas: © colaboradores do OpenStreetMap, licença ODbL.</span> “Site não informado” quer dizer que a fonte não tem site cadastrado para a empresa, não que ela não tenha um. Use os contatos só para abordagem comercial individual, sem disparos em massa, e respeite quem pedir para não ser contatado.</p>
   </section>
 
   <!-- ROADMAP -->
@@ -287,7 +287,7 @@
         </div>
         <div class="row"><button class="btn" id="prPrint">Baixar PDF</button><button class="btn ghost" id="prSent">Marcar como enviada</button></div>
         <p class="note">No "Baixar PDF", escolha <b>Salvar como PDF</b> na janela de impressão.</p>
-        <p class="note draft-note" id="prDraftNote" hidden>Usando o rascunho da IA para esta proposta. Revise antes de enviar. <button class="warn-link" id="prDraftClear" type="button">Voltar ao texto da oferta</button></p>
+        <p class="note draft-note" id="prDraftNote" hidden>Usando o rascunho gerado na ficha do lead. Revise antes de enviar. <button class="warn-link" id="prDraftClear" type="button">Voltar ao texto da oferta</button></p>
       </div>
       <div class="card">
         <div class="row" style="justify-content:space-between"><h2>Suas ofertas</h2><button class="btn ghost small" id="offAdd">+ Nova oferta</button></div>

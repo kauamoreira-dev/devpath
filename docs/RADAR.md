@@ -1,6 +1,23 @@
 # Radar de Clientes
 
-Módulo de prospecção do DevPath: busca empresas reais no Google por cidade e segmento, mostra sinais de oportunidade verificáveis, salva leads no funil que já existe e ajuda a escrever mensagens e propostas com IA. O contato é sempre manual, pelo WhatsApp.
+Módulo de prospecção do DevPath: busca empresas reais por cidade e segmento (OpenStreetMap de graça, ou Google Places com chave), mostra sinais de oportunidade verificáveis, salva leads no funil que já existe e ajuda a escrever mensagens e propostas com IA. O contato é sempre manual, pelo WhatsApp.
+
+## Modo gratuito (padrão) e modo Google
+
+| | Gratuito (OpenStreetMap) | Google Places |
+|---|---|---|
+| Quando vale | Sempre que **não** há `GOOGLE_PLACES_API_KEY` | Quando a chave está configurada |
+| Custo | Zero, sem cartão | Pago por consulta (há cota grátis mensal) |
+| Empresas | Reais, mapeadas pela comunidade | Reais, cadastradas no Google |
+| Telefone e site | Poucos cadastrados (em Santarém, 2 de 60 restaurantes tinham telefone) | Quase sempre |
+| Avaliações | Não tem | Tem |
+| Guardar os dados | Permitido (licença ODbL, com atribuição) | Restrito pelos termos do Google |
+
+No modo gratuito, cada card sem telefone mostra **Procurar contato no Google** e **Procurar no Instagram**: links que abrem a busca para você encontrar o contato manualmente, sem raspar nada.
+
+Sem `ANTHROPIC_API_KEY`, a análise e o rascunho de proposta da ficha são **automáticos**: feitos com regras sobre os dados do lead e das suas ofertas, sem custo, e marcados como "sem IA".
+
+Detalhes técnicos do modo gratuito: a cidade é localizada pelo Nominatim, e a busca roda num raio de 10 km do centro no Overpass. O servidor principal (`overpass-api.de`) recusa pedidos vindos do Supabase (erro 406), então a função tenta `overpass.kumi.systems`, depois `overpass.private.coffee` e só por último o principal.
 
 ## Como funciona
 
@@ -37,7 +54,7 @@ Alta a partir de 55 pontos, média a partir de 30. "Site não informado" signifi
 
 ## O que falta configurar
 
-### 1. Chave do Google Places (obrigatória para a busca)
+### 1. Chave do Google Places (opcional: troca a fonte gratuita pelo Google)
 
 1. Em https://console.cloud.google.com crie um projeto e ative o faturamento (o Google exige cartão, mesmo dentro da cota gratuita).
 2. Em **APIs e serviços → Biblioteca**, ative **Places API (New)**.
@@ -58,7 +75,7 @@ Sem ela, o Radar funciona normalmente, mas os botões de IA ficam desativados e 
 
 | Variável | Obrigatória | Padrão | Para quê |
 |---|---|---|---|
-| `GOOGLE_PLACES_API_KEY` | sim, para buscar | — | Google Places API (New) |
+| `GOOGLE_PLACES_API_KEY` | não | — | Troca o OpenStreetMap pelo Google Places (pago) |
 | `ANTHROPIC_API_KEY` | não | — | Liga os recursos de IA |
 | `AI_PROVIDER` | não | `anthropic` | Provedor de IA (a camada é desacoplada em `ai.ts`) |
 | `AI_MODEL` | não | `claude-opus-5-5` | Modelo usado. Para gastar menos, `claude-haiku-5-5` |
