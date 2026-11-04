@@ -34,6 +34,7 @@
 
   <nav class="tabs" role="tablist" aria-label="Seções">
     <button role="tab" data-v="painel" aria-selected="true" id="tab-painel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Hoje</button>
+    <button role="tab" data-v="radar" aria-selected="false" id="tab-radar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6-6"/></svg>Radar</button>
     <button role="tab" data-v="roadmap" aria-selected="false" id="tab-roadmap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l5-16 6 10 5-6"/><circle cx="20" cy="8" r="1.5"/></svg>Roadmap</button>
     <button role="tab" data-v="abordagem" aria-selected="false" id="tab-abordagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5A8.5 8.5 0 1 1 21 11.5z"/></svg>Abordagem</button>
     <button role="tab" data-v="semana" aria-selected="false" id="tab-semana"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Semana</button>
@@ -116,6 +117,39 @@
       <div class="row" style="justify-content:space-between"><h2>Tarefa do roadmap agora</h2><button class="btn ghost small" data-goto="roadmap" id="gotoRoad">Abrir roadmap</button></div>
       <div id="nextRoad"></div>
     </div>
+  </section>
+
+  <!-- RADAR -->
+  <section class="view" id="v-radar" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <h2>Radar de clientes</h2>
+          <p class="note">Encontre empresas reais no Google por cidade e segmento, veja os sinais de oportunidade e salve como lead.</p>
+        </div>
+        <span class="chip" id="rzUsage" title="Buscas usadas hoje">—</span>
+      </div>
+      <div id="rzGate" class="rz-gate" hidden></div>
+      <form id="rzForm" class="rz-form" novalidate>
+        <label class="fl rz-city" for="rzCity"><span class="label">Cidade</span><input type="text" id="rzCity" placeholder="Ex.: Santarém" autocomplete="address-level2" required maxlength="60"></label>
+        <label class="fl rz-uf" for="rzUf"><span class="label">UF</span><select id="rzUf" required></select></label>
+        <label class="fl rz-seg" for="rzSeg"><span class="label">Segmento</span><input type="text" id="rzSeg" list="rzSegs" placeholder="Ex.: restaurantes" maxlength="60"></label>
+        <label class="fl" for="rzName"><span class="label">Nome da empresa</span><input type="text" id="rzName" placeholder="Opcional" maxlength="80"></label>
+        <label class="fl" for="rzTerms"><span class="label">Termos extras</span><input type="text" id="rzTerms" placeholder="Opcional. Ex.: delivery, centro" maxlength="80"></label>
+        <label class="fl" for="rzSite"><span class="label">Site</span><select id="rzSite"><option value="all">Todos</option><option value="none">Site não informado</option><option value="social">Link é rede social</option><option value="own">Com site próprio</option></select></label>
+        <label class="fl" for="rzPhone"><span class="label">Contato</span><select id="rzPhone"><option value="all">Todos</option><option value="with">Com telefone</option></select></label>
+        <div class="rz-go"><button class="btn" type="submit" id="rzGo">Buscar empresas</button></div>
+        <datalist id="rzSegs"><option value="restaurantes"><option value="lanchonetes"><option value="pizzarias"><option value="hamburguerias"><option value="padarias"><option value="barbearias"><option value="salões de beleza"><option value="clínicas odontológicas"><option value="clínicas médicas"><option value="academias"><option value="pet shops"><option value="clínicas veterinárias"><option value="oficinas mecânicas"><option value="lojas de roupas"><option value="imobiliárias"><option value="escritórios de contabilidade"><option value="escritórios de advocacia"><option value="estúdios de tatuagem"><option value="autoescolas"><option value="escolas de idiomas"></datalist>
+      </form>
+      <p class="note" id="rzMsg" role="status" aria-live="polite"></p>
+    </div>
+    <div class="rz-bar" id="rzBar" hidden>
+      <span id="rzSummary" class="note"></span>
+      <label class="row note" for="rzSort">Ordenar <select id="rzSort"><option value="opp">Maior oportunidade</option><option value="name">Nome</option><option value="reviews">Menos avaliações</option></select></label>
+    </div>
+    <div id="rzResults" class="rz-grid" aria-live="polite" aria-busy="false"></div>
+    <div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" id="rzMore" hidden>Carregar mais resultados</button></div>
+    <p class="note rz-attrib">Dados de empresas: Google Maps. “Site não informado” quer dizer que o Google não tem site cadastrado para a empresa, não que ela não tenha um. Use os contatos só para abordagem comercial individual, sem disparos em massa, e respeite quem pedir para não ser contatado.</p>
   </section>
 
   <!-- ROADMAP -->
@@ -223,6 +257,12 @@
       </div>
     </div>
     <div class="card" style="margin-top:16px">
+      <div class="lead-filters">
+        <input type="search" id="pfQ" placeholder="Buscar por nome, nicho ou anotação" aria-label="Buscar leads">
+        <select id="pfSt" aria-label="Filtrar por etapa"></select>
+        <select id="pfOrig" aria-label="Filtrar por origem"><option value="">Todas as origens</option><option value="radar">Radar</option><option value="manual">Adicionados à mão</option></select>
+        <span class="note" id="pfCount"></span>
+      </div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Quem</th><th>Tipo</th><th class="r">Valor</th><th>Etapa</th><th>Próxima ação</th><th>Quando</th><th></th></tr></thead>
         <tbody id="pipeBody"></tbody>
@@ -247,6 +287,7 @@
         </div>
         <div class="row"><button class="btn" id="prPrint">Baixar PDF</button><button class="btn ghost" id="prSent">Marcar como enviada</button></div>
         <p class="note">No "Baixar PDF", escolha <b>Salvar como PDF</b> na janela de impressão.</p>
+        <p class="note draft-note" id="prDraftNote" hidden>Usando o rascunho da IA para esta proposta. Revise antes de enviar. <button class="warn-link" id="prDraftClear" type="button">Voltar ao texto da oferta</button></p>
       </div>
       <div class="card">
         <div class="row" style="justify-content:space-between"><h2>Suas ofertas</h2><button class="btn ghost small" id="offAdd">+ Nova oferta</button></div>
@@ -332,6 +373,7 @@
   </section>
 </div>
 <div class="toast" id="toast" hidden></div>
+<dialog id="leadDlg" class="dlg" aria-labelledby="ldTitle"><div class="dlg-body" id="leadBody"></div></dialog>
 <div id="printArea"></div>
 
 <div class="auth" id="auth" hidden>
@@ -354,5 +396,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="radar.js"></script>
 </body>
 </html>

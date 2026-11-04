@@ -1,6 +1,6 @@
 // DevPath: abre mesmo sem internet. Busca a versão nova primeiro e usa o cache se estiver offline.
-const CACHE = "devpath-v4";
-const CORE = ["/", "/index.html", "/style.css", "/app.js", "/config.js", "/manifest.webmanifest", "/icon-192.png"];
+const CACHE = "devpath-v5";
+const CORE = ["/", "/index.html", "/style.css", "/app.js", "/radar.js", "/config.js", "/manifest.webmanifest", "/icon-192.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

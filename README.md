@@ -4,6 +4,7 @@ Painel de carreira para dev freelancer sair do zero aos R$ 5 mil por mês.
 
 ## O que tem
 
+- **Radar de clientes:** busca empresas reais no Google por cidade e segmento, mostra sinais de oportunidade verificáveis, salva leads sem duplicar e ajuda com mensagens e propostas por IA. Configuração em [docs/RADAR.md](docs/RADAR.md).
 - **Fila de abordagem:** cadastre empresas (ou cole uma lista) e aborde com 1 clique no WhatsApp, com a mensagem já escrita a partir do que você notou no negócio.
 - **Follow-ups automáticos:** quem não respondeu volta para a lista em 3 dias, com a mensagem certa para cada etapa.
 - **Funil:** taxa de resposta, propostas e fechamentos, por nicho e por tipo de mensagem.
@@ -13,6 +14,12 @@ Painel de carreira para dev freelancer sair do zero aos R$ 5 mil por mês.
 - **App instalável** no celular (PWA), funciona offline.
 
 Site estático (HTML, CSS e JavaScript puro), sem build. Login e sincronização com [Supabase](https://supabase.com).
+
+## Testes
+
+```bash
+npm test
+```
 
 ## Rodar localmente
 
@@ -38,4 +45,5 @@ Importe o repositório no Vercel. Não precisa de build command nem de output di
 - HTML, CSS e JavaScript sem framework
 - Supabase Auth + Postgres com Row Level Security
 - PWA (manifest + service worker)
+- Supabase Edge Function (Deno) para o Radar: Google Places API (New) e Claude
 - Vercel

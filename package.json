@@ -1,0 +1,9 @@
+{
+  "name": "devpath",
+  "private": true,
+  "description": "DevPath: painel de carreira e prospecção para dev freelancer.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\""
+  }
+}

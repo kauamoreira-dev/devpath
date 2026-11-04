@@ -47,13 +47,14 @@ const SOURCES=[
  ["Plataformas","Workana e 99Freelas para pegar volume e depoimentos no começo. LinkedIn para vagas PJ júnior."],
  ["Grupos locais","Associação comercial, grupos de empresários no WhatsApp, feiras do bairro."]
 ];
-const STAGES=[["prospect","Prospectar"],["contato","Contatado"],["proposta","Proposta"],["negocia","Negociando"],["fechado","Fechado"],["perdido","Perdido"]];
+const STAGES=[["prospect","Novo"],["contato","Contatado"],["respondeu","Respondeu"],["proposta","Proposta enviada"],["negocia","Negociação"],["fechado","Ganho"],["perdido","Perdido"]];
+const STAGE_NAME=Object.fromEntries(STAGES);
 const COLS=[["todo","A fazer"],["doing","Fazendo"],["done","Feito"]];
 const OFFERS0=()=>[
  {id:"o1",nome:"Site com agendamento online",desc:"Site rápido e bonito para o seu negócio, com agendamento online ligado ao WhatsApp, para o cliente marcar sozinho a qualquer hora.",inclui:"Site de até 5 seções, feito para celular\nAgendamento online com confirmação no WhatsApp\nDomínio e hospedagem configurados\nTreinamento de 30 minutos",prazo:15,preco:1200,mensal:200},
  {id:"o2",nome:"Automação com IA",desc:"Automatizo uma tarefa repetitiva do seu negócio usando IA: atendimento no WhatsApp, planilhas ou relatórios.",inclui:"Diagnóstico de como funciona hoje\nAutomação configurada e testada\nManual simples de uso\n30 dias de ajustes",prazo:10,preco:1500,mensal:300}];
 const PROFILE0=()=>({nome:"",cidade:"",whats:"",insta:"",headline:"",slug:"",caseProb:"",caseSol:"",caseRes:"",published:false});
-const DEFAULT=()=>({v:3,profile:PROFILE0(),offers:OFFERS0(),proposals:[],roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
+const DEFAULT=()=>({v:4,propDraft:null,profile:PROFILE0(),offers:OFFERS0(),proposals:[],roadmap:{},today:{date:"",items:["","",""],done:[false,false,false]},week:[],pipeline:[],study:[],income:[],outreach:{},goal:{min:3000,max:5000,studyH:10,fixed:0,outreachDay:10,d3:"2027-03-03",d5:"2027-07-03"}});
 
 let S=DEFAULT(); let sb=null, session=null, localMode=false; let saving=false, dirty=false, saveT=null;
 const $=id=>document.getElementById(id);
@@ -96,7 +97,8 @@ function studyByDay(){const m={};for(const s of S.study){m[s.date]=(m[s.date]||0
 function streak(){const m=studyByDay();let n=0;const d=new Date();if(!m[iso(d)])d.setDate(d.getDate()-1);while(m[iso(d)]){n++;d.setDate(d.getDate()-1)}return n}
 
 /* ---------- render ---------- */
-function render(){renderKpis();renderToday();renderNext();renderQueue();renderFups();renderFunnel();renderProps();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
+const hooks=[];
+function render(){hooks.forEach(f=>{try{f()}catch(e){console.error(e)}});renderKpis();renderToday();renderNext();renderQueue();renderFups();renderFunnel();renderProps();renderRoad();renderAbord();renderWeek();renderPipe();renderStudy();renderMoney()}
 function renderAbord(){
   const t=today(),n=S.outreach[t]||0,g=S.goal.outreachDay;
   $("oDate").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
@@ -180,19 +182,23 @@ function renderPipe(){
   const t=today();
   $("stages").innerHTML=STAGES.map(([k,n])=>{const it=S.pipeline.filter(p=>p.status===k);return `<div class="stage"><span class="label">${n}</span><b class="num">${it.length}</b><span class="note num">${brl(it.reduce((a,p)=>a+(+p.valor||0),0))}</span></div>`}).join("");
   const order=Object.fromEntries(STAGES.map((s,i)=>[s[0],i]));
-  const rows=[...S.pipeline].sort((a,b)=>order[a.status]-order[b.status]||((a.data||"9")>(b.data||"9")?1:-1));
-  $("pipeBody").innerHTML=rows.length?rows.map(p=>`<tr><td><b>${esc(p.nome)}</b>${p.nicho?` <span class="muted">· ${esc(p.nicho)}</span>`:""}<div class="mini-links">${p.whats?`<a href="https://wa.me/${PH(p.whats)}" target="_blank" rel="noopener">WhatsApp</a>`:""}${p.insta?`<a href="${esc(igUrl(p.insta))}" target="_blank" rel="noopener">Instagram</a>`:""}</div></td><td>${esc(p.tipo)}</td><td class="r num">${p.valor?brl(p.valor):"—"}</td>
+  const fq=($("pfQ")?$("pfQ").value:"").trim().toLowerCase(),fs=$("pfSt")?$("pfSt").value:"",fo=$("pfOrig")?$("pfOrig").value:"";
+  if($("pfSt")&&!$("pfSt").dataset.built){$("pfSt").innerHTML='<option value="">Todas as etapas</option>'+STAGES.map(([k,n])=>`<option value="${k}">${n}</option>`).join("");$("pfSt").dataset.built=1}
+  const rows=[...S.pipeline].filter(p=>(!fs||p.status===fs)&&(!fo||(fo==="radar"?p.source==="radar":p.source!=="radar"))&&(!fq||[p.nome,p.nicho,p.obs,p.notes,p.address].join(" ").toLowerCase().includes(fq))).sort((a,b)=>order[a.status]-order[b.status]||((a.data||"9")>(b.data||"9")?1:-1));
+  $("pfCount").textContent=rows.length+" de "+S.pipeline.length;
+  $("pipeBody").innerHTML=rows.length?rows.map(p=>`<tr><td><button class="link-btn" data-open="${p.id}">${esc(p.nome)}</button>${p.source==="radar"?' <span class="chip acc" title="Encontrado pelo Radar">Radar</span>':""}${p.dnc?' <span class="chip bad">Não contatar</span>':""}${p.nicho?` <span class="muted">· ${esc(p.nicho)}</span>`:""}<div class="mini-links">${p.whats?`<a href="https://wa.me/${PH(p.whats)}" target="_blank" rel="noopener">WhatsApp</a>`:""}${p.insta?`<a href="${esc(igUrl(p.insta))}" target="_blank" rel="noopener">Instagram</a>`:""}</div></td><td>${esc(p.tipo)}</td><td class="r num">${p.valor?brl(p.valor):"—"}</td>
    <td><select data-st="${p.id}" aria-label="Etapa">${STAGES.map(([k,n])=>`<option value="${k}" ${p.status===k?"selected":""}>${n}</option>`).join("")}</select></td>
    <td><input type="text" data-ac="${p.id}" value="${esc(p.acao)}" aria-label="Próxima ação" style="width:100%;min-width:160px"></td>
    <td><input type="date" data-dt="${p.id}" value="${esc(p.data)}" aria-label="Data" class="${p.data&&p.data<t&&!["fechado","perdido"].includes(p.status)?"late":""}"></td>
-   <td><button class="icon-btn" data-pdel="${p.id}" aria-label="Remover">×</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">Ainda vazio. Comece com 3 nomes: um comércio do seu bairro, um conhecido que tem negócio e uma vaga júnior que te interessa.</td></tr>`;
+   <td class="row" style="flex-wrap:nowrap"><button class="btn ghost small" data-open="${p.id}">Abrir</button><button class="icon-btn" data-pdel="${p.id}" aria-label="Remover">×</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">${S.pipeline.length?"Nenhum lead com esses filtros.":"Ainda vazio. Use o Radar para encontrar empresas, ou adicione nomes acima."}</td></tr>`;
   const B=$("pipeBody");
-  B.querySelectorAll("[data-st]").forEach(s=>s.onchange=()=>{const p=S.pipeline.find(x=>x.id===s.dataset.st);p.status=s.value;if(s.value==="proposta")p.proposed=true;if(["negocia","proposta","fechado"].includes(s.value)&&!p.replied)p.replied=today();
+  B.querySelectorAll("[data-st]").forEach(s=>s.onchange=()=>{const p=S.pipeline.find(x=>x.id===s.dataset.st);p.status=s.value;if(s.value==="proposta")p.proposed=true;if(["respondeu","negocia","proposta","fechado"].includes(s.value)&&!p.replied)p.replied=today();logEv(p,"status",STAGE_NAME[s.value]);
     if(s.value==="fechado"&&p.valor&&!S.income.some(i=>i.pid===p.id)){S.income.push({id:uid(),pid:p.id,date:today(),desc:p.nome+" ("+p.tipo+")",valor:+p.valor});toast("Fechado! "+brl(p.valor)+" entrou em Dinheiro")}
     changed()});
   B.querySelectorAll("[data-ac]").forEach(i=>i.onchange=()=>{S.pipeline.find(x=>x.id===i.dataset.ac).acao=i.value;changed()});
   B.querySelectorAll("[data-dt]").forEach(i=>i.onchange=()=>{S.pipeline.find(x=>x.id===i.dataset.dt).data=i.value;changed()});
   B.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=()=>{S.pipeline=S.pipeline.filter(x=>x.id!==b.dataset.pdel);changed()});
+  B.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>window.DevPath.openLead&&window.DevPath.openLead(b.dataset.open));
 }
 function renderStudy(){
   const m=studyByDay(),t=today();const d=new Date();const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day-77);
@@ -232,11 +238,12 @@ function firstMsg(p){const m=me();
   return`Oi, ${p.nome}, tudo bem? Sou o ${m.nome}, desenvolvedor aqui de ${m.cidade}. Ajudo negócios como o seu a ganhar tempo com site, agendamento online e automação no WhatsApp. Posso te fazer uma pergunta rápida sobre como vocês atendem hoje?`}
 function fuMsg(p){const n=(p.touches||[]).filter(t=>t.k==="fu").length;
   if(p.status==="proposta")return`Oi, ${p.nome}! Conseguiu dar uma olhada na proposta que te mandei? Se tiver qualquer dúvida ou quiser ajustar algo, me fala que eu adapto.`;
-  if(p.status==="negocia")return`Oi, ${p.nome}! Conseguimos marcar aquela conversa rápida? Pode ser por ligação ou áudio, no horário que for melhor para você.`;
-  if(n===0)return`Oi, ${p.nome}! Passando só para saber se você viu minha mensagem${p.obs?" sobre "+lcFirst(p.obs):""}. Se não for prioridade agora, tudo bem, é só me falar que eu não insisto.`;
+  if(p.status==="negocia"||p.status==="respondeu")return`Oi, ${p.nome}! Conseguimos marcar aquela conversa rápida? Pode ser por ligação ou áudio, no horário que for melhor para você.`;
+  if(n===0)return`Oi, ${p.nome}! Passando só para saber se você viu minha última mensagem. Se não for prioridade agora, tudo bem, é só me falar que eu não insisto.`;
   return`Oi, ${p.nome}! Última mensagem por aqui: se quiser, te mando um exemplo pronto de como ficaria para vocês, sem compromisso. Se não fizer sentido agora, sem problema!`}
 function waLink(p,msg){return p.whats?`https://wa.me/${PH(p.whats)}?text=${encodeURIComponent(msg)}`:""}
-function touch(p,k){p.touches=p.touches||[];p.touches.push({d:today(),k});
+function logEv(p,t,txt){p.log=p.log||[];p.log.push({d:today(),t,txt:String(txt||"").slice(0,300)});if(p.log.length>60)p.log=p.log.slice(-60)}
+function touch(p,k){p.touches=p.touches||[];p.touches.push({d:today(),k});logEv(p,k==="first"?"contato":"followup",k==="first"?"Primeiro contato":"Follow-up");
   if(k==="first"){if(p.status==="prospect")p.status="contato";p.msgKind=p.obs?"personalizada":"genérica";p.acao="Follow-up";p.data=addDays(3);S.outreach[today()]=(S.outreach[today()]||0)+1;
     const n=S.outreach[today()];if(n===S.goal.outreachDay)setTimeout(()=>toast("Meta do dia batida!"),400)}
   else{const n=p.touches.filter(t=>t.k==="fu").length;p.data=addDays(n>=2?7:4);if(p.status==="contato")p.acao=n>=2?"Sem resposta: decidir se encerra":"Follow-up "+(n+1)}
@@ -245,7 +252,7 @@ function copyText(t,msg){try{navigator.clipboard.writeText(t).then(()=>toast(msg
 const byId=id=>S.pipeline.find(x=>x.id===id);
 function renderQueue(){
   const t=today(),done=S.outreach[t]||0,left=Math.max(0,S.goal.outreachDay-done);
-  const all=S.pipeline.filter(p=>p.status==="prospect"),list=all.slice(0,Math.min(10,Math.max(3,left)));
+  const all=S.pipeline.filter(p=>p.status==="prospect"&&!p.dnc),list=all.slice(0,Math.min(10,Math.max(3,left)));
   $("qCount").textContent=left?left+" para bater a meta":"meta batida";
   if(!all.length){$("queue").innerHTML=`<div class="empty">Sua lista está vazia. Em <button class="warn-link" data-goto2="pipeline">Clientes e vagas</button>, adicione empresas (dá para colar várias de uma vez) e elas aparecem aqui.</div>`}
   else $("queue").innerHTML=list.map(p=>`<div class="lead"><div class="lead-h"><b>${esc(p.nome)}</b>${p.nicho?`<span class="chip">${esc(p.nicho)}</span>`:""}${p.obs?"":`<span class="chip bad" title="Sem observação a mensagem fica genérica">genérica</span>`}</div>${p.obs?`<p class="note">${esc(p.obs)}</p>`:""}
@@ -259,7 +266,7 @@ function renderQueue(){
   Q.querySelectorAll("[data-skip]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.skip);S.pipeline=S.pipeline.filter(x=>x!==p);S.pipeline.push(p);changed()});
 }
 function renderFups(){
-  const t=today(),list=S.pipeline.filter(p=>["contato","proposta","negocia"].includes(p.status)&&p.data&&p.data<=t).sort((a,b)=>a.data>b.data?1:-1);
+  const t=today(),list=S.pipeline.filter(p=>["contato","respondeu","proposta","negocia"].includes(p.status)&&p.data&&p.data<=t&&!p.dnc).sort((a,b)=>a.data>b.data?1:-1);
   $("fuCount").textContent=list.length?list.length+(list.length===1?" para hoje":" para hoje"):"em dia";
   $("fuCount").className="chip "+(list.some(p=>p.data<t)?"bad":list.length?"xp":"good");
   $("fups").innerHTML=list.length?list.map(p=>{const late=p.data<t,n=(p.touches||[]).filter(x=>x.k==="fu").length,msg=fuMsg(p);
@@ -269,13 +276,13 @@ function renderFups(){
   F.querySelectorAll("[data-fu]").forEach(a=>a.addEventListener("click",()=>{const p=byId(a.dataset.fu);setTimeout(()=>{touch(p,"fu");toast("Follow-up registrado")},50)}));
   F.querySelectorAll("[data-fucp]").forEach(b=>b.onclick=()=>copyText(fuMsg(byId(b.dataset.fucp))));
   F.querySelectorAll("[data-fudone]").forEach(b=>b.onclick=()=>{touch(byId(b.dataset.fudone),"fu");toast("Follow-up registrado")});
-  F.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.rep);p.replied=p.replied||today();if(p.status==="contato")p.status="negocia";p.acao=p.status==="proposta"?"Fechar: tirar dúvidas da proposta":"Marcar conversa e mandar proposta";p.data=addDays(1);changed();toast("Boa! Próximo passo: proposta")});
+  F.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{const p=byId(b.dataset.rep);p.replied=p.replied||today();if(p.status==="contato")p.status="respondeu";logEv(p,"status","Respondeu");p.acao=p.status==="proposta"?"Fechar: tirar dúvidas da proposta":"Marcar conversa e mandar proposta";p.data=addDays(1);changed();toast("Boa! Próximo passo: proposta")});
   F.querySelectorAll("[data-snooze]").forEach(b=>b.onclick=()=>{byId(b.dataset.snooze).data=addDays(3);changed();toast("Adiado 3 dias")});
   F.querySelectorAll("[data-lost]").forEach(b=>b.onclick=()=>{byId(b.dataset.lost).status="perdido";changed();toast("Encerrado. Bola pra frente")});
 }
 const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
 function funnelOf(arr){const touched=arr.filter(p=>(p.touches&&p.touches.length)||p.status!=="prospect");
-  const rep=touched.filter(p=>p.replied||["negocia","proposta","fechado"].includes(p.status));
+  const rep=touched.filter(p=>p.replied||["respondeu","negocia","proposta","fechado"].includes(p.status));
   const prop=touched.filter(p=>p.proposed||["proposta","fechado"].includes(p.status));
   const won=touched.filter(p=>p.status==="fechado");return{touched,rep,prop,won}}
 function renderFunnel(){
@@ -322,10 +329,12 @@ function renderDoc(){
   const o=curOffer(),pr=S.profile,cli=$("prCli").value.trim(),val=+$("prVal").value||(o&&o.preco)||0,dias=+$("prDias").value||7;
   if(!o){$("propDoc").innerHTML=`<p>Crie uma oferta para gerar a proposta.</p>`;return}
   const until=new Date();until.setDate(until.getDate()+dias);
-  const lines=String(o.inclui||"").split(/\n/).map(s=>s.trim()).filter(Boolean);
+  const dr=S.propDraft&&S.propDraft.offerId===o.id&&S.propDraft.cli===cli?S.propDraft:null;
+  $("prDraftNote").hidden=!dr;
+  const lines=dr?dr.inclui:String(o.inclui||"").split(/\n/).map(s=>s.trim()).filter(Boolean);
   $("propDoc").innerHTML=`<div class="pd-head"><div><div class="pd-name">${esc(pr.nome||"Seu nome")}</div><div class="pd-sub">Desenvolvedor${pr.cidade?" · "+esc(pr.cidade):""}</div></div><div class="pd-meta">Proposta nº ${propNum()}<br>${new Date().toLocaleDateString("pt-BR",{day:"numeric",month:"long",year:"numeric"})}</div></div>
    <p class="pd-for">Para: <b>${esc(cli||"Nome do cliente")}</b></p><h1 class="pd-title">${esc(o.nome)}</h1>
-   <h3>O que vou fazer</h3><p>${esc(o.desc)}</p>
+   <h3>O que vou fazer</h3><p>${esc(dr?dr.descricao:o.desc)}</p>
    ${lines.length?`<h3>O que está incluso</h3><ul>${lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
    <div class="pd-grid"><div><span>Prazo</span><b>${o.prazo||"—"} dias úteis</b><small>a partir da aprovação</small></div><div><span>Investimento</span><b>${brl(val)}</b><small>${esc($("prPag").value)}</small></div>${o.mensal?`<div><span>Manutenção (opcional)</span><b>${brl(o.mensal)}/mês</b><small>hospedagem, suporte e pequenas melhorias</small></div>`:""}</div>
    ${$("prExtra").value.trim()?`<h3>Observações</h3><p>${esc($("prExtra").value.trim()).replace(/\n/g,"<br>")}</p>`:""}
@@ -341,7 +350,7 @@ $("prSent").onclick=()=>{const cli=$("prCli").value.trim(),o=curOffer();if(!cli)
   const val=+$("prVal").value||o.preco||0;let p=S.pipeline.find(x=>x.nome.toLowerCase()===cli.toLowerCase());
   if(!p){p=newLead({nome:cli});p.touches=[{d:today(),k:"first"}];S.pipeline.push(p)}
   p.status="proposta";p.proposed=true;p.replied=p.replied||today();p.valor=val;p.acao="Follow-up da proposta";p.data=addDays(2);
-  S.proposals.push({id:uid(),num:propNum(),cli,offer:o.nome,valor:val,date:today()});changed();toast("Proposta registrada. Follow-up em "+fmtD(p.data))};
+  S.proposals.push({id:uid(),num:propNum(),cli,pid:p.id,offer:o.nome,valor:val,date:today()});logEv(p,"proposta","Proposta "+o.nome+" · "+brl(val));if(S.propDraft&&S.propDraft.leadId===p.id)S.propDraft=null;changed();toast("Proposta registrada. Follow-up em "+fmtD(p.data))};
 for(const id in PF)$(id).addEventListener("input",e=>{let v=e.target.value;if(id==="pfSlug"){v=v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9-]+/g,"-").replace(/^-+/,"").slice(0,40);if(v!==e.target.value)e.target.value=v}S.profile[PF[id]]=v;save();renderDoc()});
 function pubLink(){const ok=S.profile.published&&S.profile.slug;const url=location.origin+"/s/"+S.profile.slug;$("pfLink").hidden=!ok;$("pfCopy").hidden=!ok;if(ok){$("pfLink").href=url;$("pfLink").textContent=url.replace(/^https?:\/\//,"")}}
 $("pfCopy").onclick=()=>copyText(location.origin+"/s/"+S.profile.slug,"Link copiado");
@@ -408,6 +417,16 @@ $("timerGo").onclick=()=>{
   tStart=Date.now();const end=tStart+tLeft*1000;$("timerGo").textContent="Parar e registrar";
   tInt=setInterval(()=>{tLeft=Math.max(0,Math.round((end-Date.now())/1000));tShow();if(tLeft===0){clearInterval(tInt);tInt=null;tLog(tMin);$("timerGo").textContent="Começar";tLeft=tMin*60;tShow();toast("Bloco concluído: "+tMin+" min registrados");document.title="✔ Bloco concluído";setTimeout(()=>document.title="DevPath",4000)}},500)};
 
+/* ---------- API usada pelo módulo Radar (radar.js) ---------- */
+window.DevPath={
+  get state(){return S},get sb(){return sb},get session(){return session},
+  changed,save,toast,show,esc,brl,fmtD,today,addDays,uid,iso,PH,igUrl,newLead,touch,logEv,firstMsg,fuMsg,waLink,copyText,me,
+  STAGES,STAGE_NAME,onRender:f=>hooks.push(f),openLead:null,
+  renderDoc:()=>renderDoc(),
+};
+$("pfQ").addEventListener("input",()=>renderPipe());$("pfSt").addEventListener("change",()=>renderPipe());$("pfOrig").addEventListener("change",()=>renderPipe());
+$("prDraftClear").onclick=()=>{S.propDraft=null;changed()};
+
 /* ---------- boot ---------- */
 render();
 const CFG=window.DEVPATH_CONFIG||{};
@@ -423,7 +442,7 @@ async function loadRemote(){
   const {data,error}=await sb.from("devpath_state").select("data").eq("user_id",session.user.id).maybeSingle();
   if(error){loadLocal();sync("err","Sem conexão: usando a cópia deste aparelho");return}
   if(data&&data.data){S=merge(data.data);render();sync("ok","Salvo na nuvem")}
-  else{loadLocal();dirty=true;flush()}
+  else{loadLocal();render();dirty=true;flush()}
 }
 if(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase){
   sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey);
