@@ -2,9 +2,15 @@
 
 Painel de carreira para dev freelancer sair do zero aos R$ 5 mil por mês.
 
+**Demo:** https://devpath-sand.vercel.app
+
+Quem começa como freelancer costuma perder clientes por falta de método: não sabe quem abordar, esquece de
+fazer follow-up e não mede o que funciona. O DevPath junta prospecção, abordagem, propostas e metas num
+painel só, que roda no navegador e pode ser instalado no celular.
+
 ## O que tem
 
-- **Radar de clientes:** busca empresas reais no Google por cidade e segmento, mostra sinais de oportunidade verificáveis, salva leads sem duplicar e ajuda com mensagens e propostas por IA. Configuração em [docs/RADAR.md](docs/RADAR.md).
+- **Radar de clientes:** busca empresas reais por cidade e segmento (OpenStreetMap, gratuito, ou Google Places com chave), mostra sinais de oportunidade verificáveis, salva leads sem duplicar e ajuda com mensagens e propostas por IA. Configuração em [docs/RADAR.md](docs/RADAR.md).
 - **Fila de abordagem:** cadastre empresas (ou cole uma lista) e aborde com 1 clique no WhatsApp, com a mensagem já escrita a partir do que você notou no negócio.
 - **Follow-ups automáticos:** quem não respondeu volta para a lista em 3 dias, com a mensagem certa para cada etapa.
 - **Funil:** taxa de resposta, propostas e fechamentos, por nicho e por tipo de mensagem.
@@ -13,13 +19,30 @@ Painel de carreira para dev freelancer sair do zero aos R$ 5 mil por mês.
 - **Roadmap em 5 níveis**, prioridades do dia, timer de foco, quadro da semana e controle de renda com meta.
 - **App instalável** no celular (PWA), funciona offline.
 
-Site estático (HTML, CSS e JavaScript puro), sem build. Os dados ficam só no navegador (com backup em arquivo); a conta no [Supabase](https://supabase.com) serve apenas para liberar o Radar.
+Site estático (HTML, CSS e JavaScript puro), sem build. Os dados ficam no navegador (com backup em arquivo). A conta no [Supabase](https://supabase.com) é opcional: libera o Radar, a página pública de serviços e uma cópia dos dados na conta.
+
+## Arquitetura
+
+```
+Navegador (app.js, radar.js, servicos.js, sw.js)
+   │  dados locais + PWA offline
+   │  login opcional (Supabase Auth)
+   ▼
+Supabase
+   ├─ Postgres com RLS: devpath_state (dados do usuário) e devpath_public (página de serviços)
+   └─ Edge Function "radar" (Deno): valida a entrada, aplica limite de uso,
+      busca empresas (OpenStreetMap ou Google Places) e gera textos com IA (Claude, opcional)
+```
+
+As chaves de API ficam só nos segredos da Edge Function, nunca no navegador. Detalhes em [docs/RADAR.md](docs/RADAR.md).
 
 ## Testes
 
 ```bash
 npm test
 ```
+
+Testes com o executor nativo do Node (`node --test`) para o núcleo do Radar e a leitura de dados do OpenStreetMap, em `tests/`.
 
 ## Rodar localmente
 
@@ -45,5 +68,5 @@ Importe o repositório no Vercel. Não precisa de build command nem de output di
 - HTML, CSS e JavaScript sem framework
 - Supabase Auth + Postgres com Row Level Security
 - PWA (manifest + service worker)
-- Supabase Edge Function (Deno) para o Radar: Google Places API (New) e Claude
+- Supabase Edge Function (Deno) para o Radar: OpenStreetMap (Nominatim e Overpass), Google Places API (New) e Claude
 - Vercel
